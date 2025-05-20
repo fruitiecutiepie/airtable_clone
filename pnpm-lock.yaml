@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@faker-js/faker':
+        specifier: ^9.8.0
+        version: 9.8.0
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.8.3)(zod@3.24.4)
@@ -26,6 +29,9 @@ importers:
       '@trpc/server':
         specifier: ^11.0.0
         version: 11.1.2(typescript@5.8.3)
+      nanoid:
+        specifier: ^5.1.5
+        version: 5.1.5
       next:
         specifier: ^15.2.3
         version: 15.3.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -41,6 +47,9 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.1.0(react@19.1.0)
+      react-window:
+        specifier: ^1.8.11
+        version: 1.8.11(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
@@ -69,6 +78,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.0
         version: 19.1.5(@types/react@19.1.4)
+      '@types/react-window':
+        specifier: ^1.8.8
+        version: 1.8.8
       eslint:
         specifier: ^9.23.0
         version: 9.27.0(jiti@2.4.2)
@@ -118,6 +130,10 @@ packages:
       nodemailer:
         optional: true
 
+  '@babel/runtime@7.27.1':
+    resolution: {integrity: sha512-1x3D2xEk2fRo3PAhwQwu5UubzgiVWSXTBfWpVd2Mx2AzRqJuDJCsgaDVZ7HB5iGzDW1Hl1sWN2mFyKjmR9uAog==}
+    engines: {node: '>=6.9.0'}
+
   '@emnapi/core@1.4.3':
     resolution: {integrity: sha512-4m62DuCE07lw01soJwPiBGC0nAww0Q+RY70VZ+n49yDIO13yyinhbWCeNnaob0lakDtWQzSdtNWzJeOJt2ma+g==}
 
@@ -164,6 +180,10 @@ packages:
   '@eslint/plugin-kit@0.3.1':
     resolution: {integrity: sha512-0J+zgWxHN+xXONWIyPWKFMgVuJoZuGiIFu8yxk7RJjxkzpGmyja5wRFqZIVtjDVOQpV+Rw0iOAjYPE2eQyjr0w==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@faker-js/faker@9.8.0':
+    resolution: {integrity: sha512-U9wpuSrJC93jZBxx/Qq2wPjCuYISBueyVUGK7qqdmj7r/nxaxwW8AQDCLeRO7wZnjj94sh3p246cAYjUKuqgfg==}
+    engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -586,6 +606,9 @@ packages:
     resolution: {integrity: sha512-CMCjrWucUBZvohgZxkjd6S9h0nZxXjzus6yDfUb+xLxYM7VvjKNH1tQrE9GWLql1XoOP4/Ds3bwFqShHUYraGg==}
     peerDependencies:
       '@types/react': ^19.0.0
+
+  '@types/react-window@1.8.8':
+    resolution: {integrity: sha512-8Ls660bHR1AUA2kuRvVG9D/4XpRC6wjAaPT9dil7Ckc76eP9TKWZwwmgfq8Q1LANX3QNDnoU4Zp48A3w+zK69Q==}
 
   '@types/react@19.1.4':
     resolution: {integrity: sha512-EB1yiiYdvySuIITtD5lhW4yPyJ31RkJkkDw794LaQYrxCSaQV/47y5o1FMC4zF9ZyjUjzJMZwbovEnT5yHTW6g==}
@@ -1482,6 +1505,9 @@ packages:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
 
+  memoize-one@5.2.1:
+    resolution: {integrity: sha512-zYiwtZUcYyXKo/np96AGZAckk+FWWsUdJ3cHGGmld7+AhvcWmQyGCYUh1hc4Q/pkOhb65dQR/pqCyK0cOaHz4Q==}
+
   merge2@1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
@@ -1519,6 +1545,11 @@ packages:
   nanoid@3.3.11:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
+    hasBin: true
+
+  nanoid@5.1.5:
+    resolution: {integrity: sha512-Ir/+ZpE9fDsNH0hQ3C68uyThDXzYcim2EqcZ8zn8Chtt1iylPT9xXJB0kPCnqzgcEGikO9RxSrh63MsmVCU7Fw==}
+    engines: {node: ^18 || >=20}
     hasBin: true
 
   napi-postinstall@0.2.4:
@@ -1827,6 +1858,13 @@ packages:
 
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
+
+  react-window@1.8.11:
+    resolution: {integrity: sha512-+SRbUVT2scadgFSWx+R1P754xHPEqvcfSfVX10QYg6POOz+WNgkN48pS+BtZNIMGiL1HYrSEiCkwsMS15QogEQ==}
+    engines: {node: '>8.0.0'}
+    peerDependencies:
+      react: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   react@19.1.0:
     resolution: {integrity: sha512-FS+XFBNvn3GTAWq26joslQgWNoFu08F4kl0J4CgdNKADkdSGXQyTCnKteIAJy96Br6YbpEU1LSzV5dYtjMkMDg==}
@@ -2139,6 +2177,8 @@ snapshots:
       preact: 10.11.3
       preact-render-to-string: 5.2.3(preact@10.11.3)
 
+  '@babel/runtime@7.27.1': {}
+
   '@emnapi/core@1.4.3':
     dependencies:
       '@emnapi/wasi-threads': 1.0.2
@@ -2198,6 +2238,8 @@ snapshots:
     dependencies:
       '@eslint/core': 0.14.0
       levn: 0.4.1
+
+  '@faker-js/faker@9.8.0': {}
 
   '@humanfs/core@0.19.1': {}
 
@@ -2515,6 +2557,10 @@ snapshots:
       pg-types: 4.0.2
 
   '@types/react-dom@19.1.5(@types/react@19.1.4)':
+    dependencies:
+      '@types/react': 19.1.4
+
+  '@types/react-window@1.8.8':
     dependencies:
       '@types/react': 19.1.4
 
@@ -3576,6 +3622,8 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
+  memoize-one@5.2.1: {}
+
   merge2@1.4.1: {}
 
   micromatch@4.0.8:
@@ -3604,6 +3652,8 @@ snapshots:
   ms@2.1.3: {}
 
   nanoid@3.3.11: {}
+
+  nanoid@5.1.5: {}
 
   napi-postinstall@0.2.4: {}
 
@@ -3841,6 +3891,13 @@ snapshots:
       scheduler: 0.26.0
 
   react-is@16.13.1: {}
+
+  react-window@1.8.11(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+    dependencies:
+      '@babel/runtime': 7.27.1
+      memoize-one: 5.2.1
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
 
   react@19.1.0: {}
 
