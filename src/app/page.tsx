@@ -1,59 +1,34 @@
-// App.tsx
 "use client"
-import React from "react"
-import TableView from "./pages/TableView"
-import { useTables } from "./hooks/useTables"
 
-export default function App() {
-  const {
-    tables,
-    selected,
-    setSelected,
-    createNew,
-    addHundredThousand,
-    rename,
-    deleteCurrTable
-  } = useTables()
+import { useSession, signIn, signOut } from "next-auth/react"
+import { Button } from "./components/ui/button"
+import App from "./table/page"
 
+export default function Page() {
+  const { data: session, status } = useSession()
+  if (status === "loading") return <p>Loading…</p>
+  if (!session) return (
+    <div
+      className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white"
+    >
+      <Button onClick={() => signIn("google")}>
+        Sign in with Google
+      </Button>
+    </div>
+  )
   return (
-    <div style={{ display: "flex" }}>
-      <aside style={{ width: 200, borderRight: "1px solid #ddd", padding: 8 }}>
-        <button onClick={createNew}>+ New Table</button>
-        <ul>
-          {tables?.map(t => (
-            <li key={t.id}>
-              <button
-                onClick={() => setSelected(t.id)}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  background: t.id === selected ? "#eee" : "transparent",
-                }}
-              >
-                {t.name}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </aside>
-      <main style={{ flex: 1, padding: 16 }}>
-        {selected != null
-          ? (
-            <>
-              <button onClick={addHundredThousand} style={{ marginTop: 8 }}>
-                Add 100,000 Rows
-              </button>
-              <button onClick={() => rename(selected)} style={{ marginTop: 8 }}>
-                Rename Table
-              </button>
-              <button onClick={() => deleteCurrTable(selected)} style={{ marginTop: 8 }}>
-                Delete Table
-              </button>
-              <TableView tableId={selected} />
-            </>
-          )
-          : <div>Select or create a table</div>}
-      </main>
+    <div
+      className="flex flex-col items-center space-y-4"
+    >
+      <p>Signed in as {session.user?.email}</p>
+      <Button variant={"ghost"} onClick={() => signOut()}>
+        Sign out
+      </Button>
+      <div
+        className="flex flex-col h-full w-full"
+      >
+        <App />
+      </div>
     </div>
   )
 }

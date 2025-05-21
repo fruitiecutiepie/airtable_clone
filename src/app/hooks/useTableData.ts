@@ -22,7 +22,7 @@ import { nanoid } from "nanoid";
 
 export function useTableData(tableId: number) {
   // 1. Local UI state
-  const [params, setParams] = useState<PageParams>({ pageSize: 20000 });
+  const [pageParams, setPageParams] = useState<PageParams>({ pageSize: 20000 });
   const [search, setSearch] = useState<string>("");
   // editing state for in-place cell editing
   const [editing, setEditing] = useState<{
@@ -33,8 +33,8 @@ export function useTableData(tableId: number) {
   // 2. Queries (hooks at top level)
   const { data: columnsMeta = [], refetch: refetchColumns } = useGetColumns(tableId);
 
-  const getRows = useGetRows(tableId, params);
-  const searchRows = useSearchRows(tableId, search, params.pageSize);
+  const getRows = useGetRows(tableId, pageParams);
+  const searchRows = useSearchRows(tableId, search, pageParams.pageSize);
 
   // 3. Mutations (hooks at top level)
   const updateRow = useUpdateRow();
@@ -54,7 +54,7 @@ export function useTableData(tableId: number) {
       {
         async onSuccess() {
           // reset pagination cursor
-          setParams(p => ({ pageSize: p.pageSize }));
+          setPageParams(p => ({ pageSize: p.pageSize }));
           if (search.length > 0) {
             await searchRows.refetch();
           } else {
@@ -72,7 +72,7 @@ export function useTableData(tableId: number) {
       { tableId, columnId },
       {
         async onSuccess() {
-          setParams(p => ({ pageSize: p.pageSize }));
+          setPageParams(p => ({ pageSize: p.pageSize }));
           if (search.length > 0) {
             await searchRows.refetch();
           } else {
@@ -116,7 +116,7 @@ export function useTableData(tableId: number) {
       console.error("No last row found");
       return;
     }
-    setParams((p) => ({
+    setPageParams((p) => ({
       ...p,
       lastId: last.id,
       lastValue: last[p.sortCol ?? "id"],
@@ -196,12 +196,12 @@ export function useTableData(tableId: number) {
   return {
     columnsMeta,
     rows,
-    params,
+    pageParams,
     search,
     isLoading,
     hasMore,
     getRows,
-    setParams,
+    setPageParams,
     setSearch,
     editing,
     setEditing,
