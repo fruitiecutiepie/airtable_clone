@@ -1,4 +1,0 @@
-{
-  "DATABASE_URL": "postgresql://neondb_owner:npg_9hAIxb5kvzni@ep-polished-voice-a72b9o7s-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require",
-  "NEXT_PUBLIC_TABLE_ID": "your_table_id_here"
-}

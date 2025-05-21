@@ -1,5 +1,8 @@
-import { type DefaultSession, type NextAuthConfig } from "next-auth";
-import DiscordProvider from "next-auth/providers/discord";
+import { type Account, type DefaultSession, type NextAuthConfig, type Session } from "next-auth";
+import Google from "next-auth/providers/google";
+import { env } from "~/env";
+import "next-auth/jwt";
+import type { JWT } from "next-auth/jwt";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -9,10 +12,11 @@ import DiscordProvider from "next-auth/providers/discord";
  */
 declare module "next-auth" {
   interface Session extends DefaultSession {
+    accessToken?: string;
     user: {
       id: string;
       // ...other properties
-      // role: UserRole;
+      // role: UserRole;A
     } & DefaultSession["user"];
   }
 
@@ -22,6 +26,12 @@ declare module "next-auth" {
   // }
 }
 
+declare module "next-auth/jwt" {
+  interface JWT {
+    accessToken?: string
+  }
+}
+
 /**
  * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
  *
@@ -29,24 +39,18 @@ declare module "next-auth" {
  */
 export const authConfig = {
   providers: [
-    DiscordProvider,
-    /**
-     * ...add more providers here.
-     *
-     * Most other providers require a bit more work than the Discord provider. For example, the
-     * GitHub provider requires you to add the `refresh_token_expires_in` field to the Account
-     * model. Refer to the NextAuth.js docs for the provider you want to use. Example:
-     *
-     * @see https://next-auth.js.org/providers/github
-     */
+    Google({ clientId: env.AUTH_GOOGLE_ID, clientSecret: env.AUTH_GOOGLE_SECRET }),
   ],
+  secret: env.AUTH_SECRET,
+  session: { strategy: "jwt" },
   callbacks: {
-    session: ({ session, token }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: token.sub,
-      },
-    }),
+    async jwt({ token, account }) {
+      if (account?.access_token) token.accessToken = account.access_token
+      return token
+    },
+    async session({ session, token }) {
+      if (token.accessToken) session.accessToken = token.accessToken
+      return session
+    },
   },
 } satisfies NextAuthConfig;
