@@ -385,18 +385,52 @@ export const tableRouter = createTRPCRouter({
 
         // Filters
         for (const [col, cond] of Object.entries(filters)) {
-          whereClauses.push(`"${col}" ${cond.op} $${idx}`);
-          values.push(cond.value);
-          idx++;
+          // skip filters without value except isnull/isnotnull
+          if (cond.value === undefined && !["isnull", "isnotnull"].includes(cond.op)) continue;
+          switch (cond.op) {
+            case "eq":
+              where.push(`"${col}" = $${i}`);
+              params.push(cond.value);
+              i++;
+              break;
+            case "neq":
+              where.push(`"${col}" <> $${i}`);
+              params.push(cond.value);
+              i++;
+              break;
+            case "lt":
+              where.push(`"${col}" < $${i}`);
+              params.push(cond.value);
+              i++;
+              break;
+            case "gt":
+              where.push(`"${col}" > $${i}`);
+              params.push(cond.value);
+              i++;
+              break;
+            case "in":
+              where.push(`"${col}"::text ILIKE $${i}`);
+              params.push(`%${cond.value}%`);
+              i++;
+              break;
+            case "nin":
+              where.push(`"${col}"::text NOT ILIKE $${i}`);
+              params.push(`%${cond.value}%`);
+              i++;
+              break;
+            case "isnull":
+              where.push(`("${col}" IS NULL OR "${col}" = '')`);
+              break;
+            case "isnotnull":
+              where.push(`"${col}" IS NOT NULL`);
+              break;
+          }
         }
 
-        // Keyset pagination
-        if (lastValue !== undefined && lastId !== undefined) {
-          whereClauses.push(`
-            ("${sortCol}", id) > ($${idx}, $${idx + 1})
-          `);
-          values.push(lastValue, lastId);
-          idx += 2;
+        if (cursor) {
+          where.push(`("${sortCol}", id) > ($${i}, $${i + 1})`);
+          params.push(cursor.lastValue, cursor.lastId);
+          i += 2;
         }
 
         const whereSql = whereClauses.length

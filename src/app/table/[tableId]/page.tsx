@@ -246,7 +246,10 @@ export default function TablePage({ params }: Props) {
         <Button onClick={saveNewRow}>Save Row</Button>
       </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table
+        className="text-sm"
+        style={{ width: "100%", borderCollapse: "collapse" }}
+      >
         <thead>
           {table.getHeaderGroups().map(hg => (
             <tr key={hg.id}>
@@ -267,6 +270,102 @@ export default function TablePage({ params }: Props) {
               ))}
             </tr>
           ))}
+
+          {/* Filter row */}
+          <tr>
+            {/** blank cell for the row‐index column **/}
+            <th></th>
+
+            {columnsMeta.map(col => {
+              const colFilter = pageParams.filters?.[col.name] ?? { op: "in" as const, value: "" };
+
+              return (
+                <th key={col.name}>
+                  {col.data_type === "numeric" ? (
+                    <>
+                      <input
+                        type="number"
+                        placeholder="> value"
+                        className="ml-2 border border-gray-300 rounded px-2 py-1 w-4/5"
+                        style={{ width: "45%", marginRight: 2 }}
+                        onChange={e => {
+                          const v = Number(e.currentTarget.value) || undefined
+                          setPageParams(p => ({
+                            ...p,
+                            filters: {
+                              ...(p.filters ?? {}),
+                              [col.name]: { op: "gt", value: v },
+                            },
+                          }))
+                        }}
+                      />
+                      <input
+                        type="number"
+                        placeholder="< value"
+                        className="ml-2 border border-gray-300 rounded px-2 py-1 w-4/5"
+                        style={{ width: "45%" }}
+                        onChange={e => {
+                          const v = Number(e.currentTarget.value) || undefined
+                          setPageParams(p => ({
+                            ...p,
+                            filters: {
+                              ...(p.filters ?? {}),
+                              [col.name]: { op: "lt", value: v },
+                            },
+                          }))
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <div
+                      className="flex items-center space-x-2 px-2"
+                    >
+                      <select
+                        value={colFilter.op}
+                        onChange={e => {
+                          const op = e.currentTarget.value as FilterOperation
+                          setPageParams(p => ({
+                            ...p,
+                            filters: {
+                              ...(p.filters ?? {}),
+                              [col.name]: { op, value: colFilter.value },
+                            },
+                          }))
+                        }}
+                        className="border border-gray-300 rounded px-2 py-1 w-2/5"
+                      >
+                        <option value="in">Contains</option>
+                        <option value="nin">Not contains</option>
+                        <option value="eq">Equal</option>
+                        <option value="neq">Not equal</option>
+                        <option value="isnull">Empty</option>
+                        <option value="isnotnull">Not empty</option>
+                      </select>
+                      {!["isnull", "isnotnull"].includes(colFilter.op) && (
+                        <input
+                          value={String(colFilter.value)}
+                          onChange={e => {
+                            const v = e.currentTarget.value
+                            setPageParams(p => ({
+                              ...p,
+                              filters: {
+                                ...(p.filters ?? {}),
+                                [col.name]: { op: colFilter.op, value: v },
+                              },
+                            }))
+                          }}
+                          className="border border-gray-300 rounded px-2 py-1 w-3/5"
+                        />
+                      )}
+                    </div>
+                  )}
+                </th>
+              )
+            })}
+
+            {/** blank cell for Actions column **/}
+            <th></th>
+          </tr>
         </thead>
         <tbody>
           {table.getRowModel().rows.map(r => (

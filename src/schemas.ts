@@ -44,7 +44,7 @@ export type Table = z.infer<typeof TableSchema>;
 // Filter
 
 export const FilterOperationSchema = z.enum([
-  'eq', 'lt', 'gt', 'like'
+  'eq', 'neq', 'lt', 'gt', 'in', 'nin', 'isnull', 'isnotnull'
 ]);
 export type FilterOperation = z.infer<typeof FilterOperationSchema>;
 
