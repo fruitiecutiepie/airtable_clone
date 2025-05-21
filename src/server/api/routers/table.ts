@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import type { PoolClient } from 'pg';
 import { publicProcedure, createTRPCRouter } from '../trpc';
 import { pool } from '~/app/db/db';
-import { TableRowValueSchema, type TableRowValue, type TableColumnDataType, type TableRow, PageParamsSchema, type TableColumn } from '~/schemas';
+import { TableRowValueSchema, type TableRowValue, type TableColumnDataType, type TableRow, PageParamsSchema, type TableColumn, FilterSchema } from '~/schemas';
 import { TRPCError } from '@trpc/server';
+import type { PoolClient } from '@neondatabase/serverless';
 
 /**
  * Updates the full-text search trigger for a given table.
@@ -334,56 +334,55 @@ export const tableRouter = createTRPCRouter({
   getRows: publicProcedure
     .input(z.object({
       tableId: z.number(),
-      params: PageParamsSchema,
+      limit: z.number().min(1).max(5000).default(1000),
+      cursor: z
+        .object({
+          lastId: z.string().optional(),
+          lastValue: TableRowValueSchema
+        })
+        .nullable()
+        .default(null),
+      sortCol: z.string().default("id"),
+      sortDir: z.enum(["asc", "desc"]).default("asc"),
+      filters: z.record(FilterSchema).default({}),
     }))
     .query(async ({ input }) => {
       const {
         tableId,
-        params,
+        limit,
+        cursor,
+        sortCol,
+        sortDir,
+        filters,
       } = input;
-      const {
-        pageSize = 1000,
-        sortCol = 'id',
-        sortDir = 'asc',
-        lastValue,
-        lastId,
-        filters = {}
-      } = params;
 
       const client = await pool.connect();
       try {
-        const columns = await client.query<
-          { name: string }
-        >(
-          `
-          SELECT name
-          FROM app_columns
-          WHERE table_id = $1
-          ORDER BY position
-          `,
+        // 1) fetch column metadata
+        const cols = await client.query<{ name: string }>(
+          `SELECT name FROM app_columns WHERE table_id = $1 ORDER BY position`,
           [tableId]
         );
-        const colNames = columns.rows.map((c) => c.name);
-        const colNamesQuoted = columns.rows.map((c) => `"${c.name}"`);
+        const names = cols.rows.map(c => c.name);
+        const quotedNames = cols.rows.map(c => `"${c.name}"`);
         const tableName = `data_${tableId}`;
 
-        // Index for sorting
-        const idxNameSortCol = `idx_${tableName}_${sortCol}`;
+        // 2) ensure indexes
         await client.query(`
-          CREATE INDEX IF NOT EXISTS ${idxNameSortCol} 
-          ON ${tableName} ("${sortCol}")
+          CREATE INDEX IF NOT EXISTS idx_${tableName}_${sortCol}
+            ON ${tableName} ("${sortCol}")
         `);
-        const idxNameSortColId = `idx_${tableName}_${sortCol}_id`;
         await client.query(`
-          CREATE INDEX IF NOT EXISTS ${idxNameSortColId}
-          ON ${tableName} ("${sortCol}", id)
+          CREATE INDEX IF NOT EXISTS idx_${tableName}_${sortCol}_id
+            ON ${tableName} ("${sortCol}", id)
         `);
 
-        const whereClauses: string[] = [];
-        const values: TableRowValue[] = [];
-        let idx = 1;
+        // 3) build WHERE + values
+        const where: string[] = [];
+        const params: TableRowValue[] = [];
+        let i = 1;
 
-        // Filters
+        // filters
         for (const [col, cond] of Object.entries(filters)) {
           // skip filters without value except isnull/isnotnull
           if (cond.value === undefined && !["isnull", "isnotnull"].includes(cond.op)) continue;
@@ -432,46 +431,38 @@ export const tableRouter = createTRPCRouter({
           params.push(cursor.lastValue, cursor.lastId);
           i += 2;
         }
+        const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
-        const whereSql = whereClauses.length
-          ? `WHERE ${whereClauses.join(' AND ')}`
-          : '';
-
-        const result = await client.query<TableRow>(
+        // 4) query one extra row to detect more pages
+        const res = await client.query<TableRow>(
           `
-          SELECT id, ${colNamesQuoted.join(',')}
-          FROM ${tableName}
-          ${whereSql}
-          ORDER BY "${sortCol}" ${sortDir}, id ${sortDir}
-          LIMIT ${pageSize + 1}
+            SELECT id, ${quotedNames.join(",")}
+            FROM ${tableName}
+            ${whereSql}
+            ORDER BY "${sortCol}" ${sortDir}, id ${sortDir}
+            LIMIT ${limit + 1}
           `,
-          values
+          params
         );
-        let rows = result.rows;
 
-        const hasMore = rows.length > pageSize;
-        if (hasMore) rows = rows.slice(0, pageSize);
+        const rows = res.rows;
+        const hasMore = rows.length > limit;
+        if (hasMore) rows.pop();
 
-        const lastRow = rows[rows.length - 1];
-        const nextCursor = hasMore && lastRow
-          ? {
-            lastId: lastRow.id,
-            lastValue: lastRow[sortCol],
-          }
+        // 5) compute nextCursor
+        const last = rows[rows.length - 1];
+        const nextCursor = hasMore
+          ? { lastId: last?.id, lastValue: last?.[sortCol] }
           : undefined;
 
         return {
-          rows: rows.map((r) => {
-            const row: TableRow = { id: r.id };
-            for (const name of colNames) {
-              row[name] = r[name];
-            }
-            return row;
+          rows: rows.map(r => {
+            const out: TableRow = { id: r.id };
+            for (const n of names) out[n] = r[n];
+            return out;
           }),
           nextCursor,
         };
-      } catch (err: unknown) {
-        return { error: err instanceof Error ? err.message : err };
       } finally {
         client.release();
       }

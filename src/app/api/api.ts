@@ -33,7 +33,13 @@ export function useDeleteColumn() {
 
 // Rows
 export function useGetRows(tableId: number, params: PageParams) {
-  return trpc.table.getRows.useQuery({ tableId, params });
+  return trpc.table.getRows.useQuery(
+    {
+      tableId,
+      ...params
+    },
+    // { keepPreviousData: true }
+  );
 }
 export function useSearchRows(tableId: number, query: string, pageSize = 1000) {
   return trpc.table.searchRows.useQuery(

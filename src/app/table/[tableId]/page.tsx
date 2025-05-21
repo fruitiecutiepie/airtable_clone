@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { nanoid } from "nanoid";
 import {
   useReactTable,
@@ -9,22 +9,75 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { useTableData } from "~/app/hooks/useTableData";
-import type { TableColumnDataType, TableRow, TableRowValue } from "~/schemas";
+import type { FilterOperation, TableColumnDataType, TableRow, TableRowValue } from "~/schemas";
 import { Button } from "~/app/components/ui/button";
+import { useInfiniteRows } from "~/app/hooks/useInfiniteRows";
 
 interface Props {
   params: { tableId: number };
 }
 
 export default function TablePage({ params }: Props) {
+  // 1) grab pageParams & UI handlers (you can drop getRows/hasMore/loadMore)
   const {
-    columnsMeta, rows, pageParams, search, editing,
-    setPageParams, setSearch, setEditing,
+    columnsMeta,
+    rows,
+    pageParams,
+    setPageParams,
+    search, setSearch,
     onSave, onDelete,
     onAddColumn, onUpdateColumn, onDeleteColumn,
-    onInsertRow, insertRowMutate, onRefetch,
-    hasMore, loadMore, isLoading
-  } = useTableData(params.tableId)
+    insertRowMutate, onInsertRow,
+    onRefetch,
+    editing, setEditing,
+  } = useTableData(params.tableId);
+
+  // 2) wire up infinite query
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteRows({
+    tableId: params.tableId,
+    limit: pageParams.pageSize,
+    cursor: pageParams.cursor,
+    sortCol: pageParams.sortCol,
+    sortDir: pageParams.sortDir,
+    filters: pageParams.filters,
+  });
+
+  // 3) flatten pages → rows
+  // const rows = useMemo<TableRow[]>(
+  //   () => infiniteData?.rows.flatMap(p => p) ?? [],
+  //   [infiniteData]
+  // );
+
+  // 4) sentinel to load more
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // {/* Sentinel div triggers next page */ }
+    // <div ref={loadMoreRef} style={{ height: 1 }} />
+    // {/* Loading indicator */ }
+    // {
+    //   isFetchingNextPage && (
+    //     <div style={{ textAlign: "center", padding: 8 }}>
+    //       Loading more…
+    //     </div>
+    //   )
+    // }
+    if (!loadMoreRef.current || !hasNextPage) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          void fetchNextPage();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    obs.observe(loadMoreRef.current);
+    return () => obs.disconnect();
+  }, [fetchNextPage, hasNextPage]);
 
   const [newRow, setNewRow] = useState<Record<string, string>>({});
 
@@ -34,30 +87,6 @@ export default function TablePage({ params }: Props) {
     for (const c of columnsMeta) blank[c.name] = "";
     setNewRow(blank);
   }, [columnsMeta.length]);
-
-  // infinite scroll handler
-  // useEffect(() => {
-  //   const onScroll = () => {
-  //     if (isSearching || isLoading || !hasMore) return;
-  //     // at bottom of page
-  //     if (
-  //       window.innerHeight + window.scrollY >=
-  //       document.documentElement.scrollHeight - 100
-  //     ) {
-  //       loadMore();
-  //     }
-  //   };
-  //   window.addEventListener("scroll", onScroll);
-  //   return () => window.removeEventListener("scroll", onScroll);
-  // }, [isSearching, hasMore, isLoading, loadMore]);
-
-  // intersection‐observer on a sentinel div at end
-  // const [ref, inView] = useInView({ rootMargin: "200px" });
-  // useEffect(() => {
-  //   if (inView && hasNextPage && !isFetchingNextPage) {
-  //     fetchNextPage();
-  //   }
-  // }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const saveNewRow = () => {
     const data: Record<string, TableRowValue> = {};
@@ -379,11 +408,14 @@ export default function TablePage({ params }: Props) {
           ))}
         </tbody>
       </table>
-      {/* {(isLoading || isFetchingNextPage) && ( */}
-      {(isLoading) && (
-        <div style={{ textAlign: "center", padding: 8 }}>Loading…</div>
+      {/* Sentinel div triggers next page */}
+      <div ref={loadMoreRef} style={{ height: 1 }} />
+      {/* Loading indicator */}
+      {isFetchingNextPage && (
+        <div style={{ textAlign: "center", padding: 8 }}>
+          Loading more…
+        </div>
       )}
-      {/* <div ref={ref} /> */}
     </div>
   )
 }

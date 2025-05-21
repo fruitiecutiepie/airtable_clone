@@ -60,8 +60,12 @@ export type Cursor = { lastId: string; lastValue: string | number | boolean }
 
 export const PageParamsSchema = z.object({
   pageSize: z.number(),
-  lastId: z.string().optional(),
-  lastValue: TableRowValueSchema.optional(),
+  cursor: z
+    .object({
+      lastId: z.string().optional(),
+      lastValue: TableRowValueSchema
+    })
+    .optional(),
   sortCol: z.string().optional(),
   sortDir: z.enum(['asc', 'desc']).optional(),
   filters: z.record(FilterSchema).optional(),

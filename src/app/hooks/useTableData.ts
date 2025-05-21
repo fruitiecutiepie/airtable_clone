@@ -22,7 +22,13 @@ import { nanoid } from "nanoid";
 
 export function useTableData(tableId: number) {
   // 1. Local UI state
-  const [pageParams, setPageParams] = useState<PageParams>({ pageSize: 20000 });
+  const [pageParams, setPageParams] = useState<PageParams>({
+    pageSize: 1000,
+    sortCol: undefined,
+    sortDir: undefined,
+    cursor: undefined,
+    filters: {}
+  });
   const [search, setSearch] = useState<string>("");
   // editing state for in-place cell editing
   const [editing, setEditing] = useState<{
@@ -100,6 +106,8 @@ export function useTableData(tableId: number) {
       : getRows.data?.rows ?? [];
   }, [search, searchRows.data, getRows.data]);
 
+  const nextCursor = getRows.data?.nextCursor ?? undefined;
+
   const hasMore = useMemo<boolean>(() => {
     return !!getRows.data?.nextCursor;
   }, [getRows.data]);
@@ -118,7 +126,7 @@ export function useTableData(tableId: number) {
     }
     setPageParams((p) => ({
       ...p,
-      lastId: last.id,
+      lastId: nextCursor,
       lastValue: last[p.sortCol ?? "id"],
     }));
   };
@@ -196,11 +204,11 @@ export function useTableData(tableId: number) {
   return {
     columnsMeta,
     rows,
-    pageParams,
     search,
     isLoading,
     hasMore,
     getRows,
+    pageParams,
     setPageParams,
     setSearch,
     editing,
