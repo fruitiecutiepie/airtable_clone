@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { PoolClient } from 'pg';
 import { publicProcedure, createTRPCRouter } from '../trpc';
-import { pool } from '../../db';
+import { pool } from '~/app/db/db';
 import { TableRowValueSchema, type TableRowValue, type TableColumnDataType, type TableRow, PageParamsSchema, type TableColumn } from '~/schemas';
 import { TRPCError } from '@trpc/server';
 
