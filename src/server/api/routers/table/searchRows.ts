@@ -39,32 +39,35 @@ export const searchRows = publicProcedure
         .map((col, i) => `${col}::text ILIKE $${2 + i}`)
         .join(' OR ');
 
-      const result = await client.query<TableRow>(
+      const result = await client.query<(
+        TableRow & { total_count: string }
+      )>(
         `
-        SELECT id, ${colNamesQuoted.join(',')}
+        SELECT
+          id,
+          ${colNamesQuoted.join(',')},
+          COUNT(*) OVER() AS total_count
         FROM ${tableName}
-        WHERE (
+        WHERE ( 
           _search @@ plainto_tsquery('english', $1)
-          ${nonTextCols.length ? `OR (${nonTextSearchExpr})` : ''}
+          ${nonTextCols.length ? ` OR (${nonTextSearchExpr})` : ""}
         )
         ORDER BY id ASC
         LIMIT $${2 + nonTextCols.length}
         `,
-        [
-          query,
-          ...nonTextCols.map(() => `%${query}%`),
-          pageSize
-        ]
+        [query, ...nonTextCols.map(() => `%${query}%`), pageSize]
       );
+      const rows = result.rows.map(r => {
+        const out: TableRow = { id: r.id };
+        for (const name of colNames) out[name] = r[name];
+        return out;
+      });
 
       return {
-        rows: result.rows.map((r) => {
-          const row: TableRow = { id: r.id };
-          for (const name of colNames) {
-            row[name] = r[name];
-          }
-          return row;
-        })
+        rows,
+        totalCount: result.rows.length
+          ? Number(result.rows[0]?.total_count)
+          : 0,
       };
     } catch (err: unknown) {
       return { error: err instanceof Error ? err.message : err };

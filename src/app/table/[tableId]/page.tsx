@@ -232,6 +232,19 @@ export default function TableView({ tableId }: { tableId: number }) {
             Clear
           </Button>
         </div>
+        <div
+          className="flex items-center justify-between gap-2 w-40"
+        >
+          <div
+            className="flex-1 flex items-center justify-center gap-2 w-16"
+          >
+            <p
+              className="text-sm text-gray-500 text-center px-4"
+            >
+              {`Total rows: ${totalRows}`}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="text-sm mb-4 gap-2 border rounded flex items-center">

@@ -69,11 +69,6 @@ export default function App() {
                     Delete
                   </Button>
                 </div>
-                <p
-                  className="text-sm text-gray-500 text-center h-full px-4"
-                >
-                  {`Total rows: ${selectedTable.rowCount}`}
-                </p>
               </div>
             </div>
             <TableView tableId={selectedTable.id} />
