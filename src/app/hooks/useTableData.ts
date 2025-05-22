@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useColumns } from "./useColumns";
 import { useRows } from "./useRows";
 import { nanoid } from "nanoid";
-import type { TableColumn, TableRowValue, PageParams } from "~/schemas";
+import type { TableColumn, TableRowValue, PageParams, TableColumnDataType } from "~/schemas";
 
 export function useTableData(tableId: number) {
   const [pageParams, setPageParams] = useState<PageParams>({ pageSize: 1000 });
@@ -35,7 +35,7 @@ export function useTableData(tableId: number) {
     setPageParams((p) => ({ ...p, lastId: nextCursor }));
   };
 
-  const onSave = async (
+  const onSaveCell = async (
     rowId: string,
     col: string,
     raw: string,
@@ -51,23 +51,63 @@ export function useTableData(tableId: number) {
     await Promise.all([refetchColumns(), refetchRows()]);
   };
 
-  const onDelete = async (rowId: string) => {
+  const onDeleteRow = async (rowId: string) => {
     await deleteRow({ tableId, rowId });
     await Promise.all([refetchColumns(), refetchRows()]);
   };
 
   const onInsertRow = async () => {
     const data: Record<string, TableRowValue> = {};
-    columns.forEach((c) => {
-      if (c.data_type === "numeric") data[c.name] = 0;
-      else if (c.data_type === "boolean") data[c.name] = false;
-      else if (c.data_type === "date")
-        data[c.name] = new Date().toISOString().split("T")[0];
-      else data[c.name] = "";
-    });
+    // columns.forEach((c) => {
+    //   if (c.data_type === "numeric") data[c.name] = 0;
+    //   else if (c.data_type === "boolean") data[c.name] = false;
+    //   else if (c.data_type === "date")
+    //     data[c.name] = new Date().toISOString().split("T")[0];
+    //   else data[c.name] = "";
+    // });
 
     await addRow({ tableId, rowId: nanoid(), data });
     await Promise.all([refetchColumns(), refetchRows()]);
+  };
+
+  const onAddColumn = async () => {
+    const name = prompt("Column name?");
+    if (!name) return;
+    const dataType = prompt("Type? (text,numeric,boolean,date)", "text") as TableColumnDataType;
+    if (!dataType) return;
+    const position = columns.length;
+    await addColumn({ tableId, name, dataType, position });
+    setPageParams(p => ({ pageSize: p.pageSize }));
+    await refetchRows();
+    await refetchColumns();
+  };
+
+  const onUpdateColumn = async (
+    columnId: number,
+    currentName: string,
+    currentDataType: TableColumnDataType
+  ) => {
+    const newName = prompt("Rename column", currentName);
+    // const newType = prompt("Type? (text,numeric,boolean,date)", "") as TableColumnDataType;
+    if (!newName) return;
+    await updateColumn({
+      tableId,
+      columnId,
+      name: newName,
+      dataType: currentDataType
+    });
+    // reset pagination cursor
+    setPageParams(p => ({ pageSize: p.pageSize }));
+    await refetchRows();
+    await refetchColumns();
+  };
+
+  const onDeleteColumn = async (columnId: number) => {
+    if (!confirm("Delete this column?")) return;
+    await deleteColumn({ tableId, columnId });
+    setPageParams(p => ({ pageSize: p.pageSize }));
+    await refetchRows();
+    await refetchColumns();
   };
 
   return {
@@ -83,12 +123,12 @@ export function useTableData(tableId: number) {
     setPageParams,
     editing,
     setEditing,
-    onSave,
-    onDelete,
+    onSaveCell,
+    onDeleteRow,
     onInsertRow,
-    addColumn,
-    updateColumn,
-    deleteColumn,
+    onAddColumn,
+    onUpdateColumn,
+    onDeleteColumn,
     refetchColumns,
     refetchRows,
   };

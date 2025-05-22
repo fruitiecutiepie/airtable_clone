@@ -17,28 +17,65 @@ export default function App() {
   } = useTableUI();
 
   return (
-    <div className="flex">
+    <div className="flex h-full">
       <aside className="w-48 p-2 border-r">
-        <Button onClick={addNewTable}>+ New Table</Button>
+        <Button onClick={addNewTable}
+          className="w-full mb-4 bg-blue-500 text-white hover:bg-blue-600"
+        >
+          + New Table
+        </Button>
         <ul>
-          {tables?.map(t => (
-            <li key={t.id}>
-              <Button onClick={() => setSelectedTable(t)} className={t.id === selectedTable?.id ? "bg-gray-200" : ""}>{t.name}</Button>
-            </li>
-          ))}
+          {tables?.map(t => {
+            const selected = t.id === selectedTable?.id;
+            return (
+              <li key={t.id}>
+                <Button
+                  onClick={() => setSelectedTable(t)}
+                  className={`w-full text-left hover:bg-blue-100
+                    ${selected ? "bg-blue-100" : ""}
+                  `}
+                >
+                  {t.name}
+                </Button>
+              </li>
+            )
+          })}
         </ul>
       </aside>
-      <main className="flex-1 p-4">
+      <main className="flex-1 p-4 h-full">
         {selectedTable ?
           <>
-            <div className="flex gap-2 mb-4">
-              <Button onClick={() => addRowsHundredThousand(selectedTable.id)}>Add 100k Rows</Button>
-              <Button onClick={() => renameTable(selectedTable.id)}>Rename</Button>
-              <Button onClick={() => deleteCurrentTable(selectedTable.id)}>Delete</Button>
+            <div className="flex gap-2 mb-4 border-b items-center">
+              <div
+                className="flex gap-2 items-center justify-between w-full"
+              >
+                <div>
+                  <Button
+                    onClick={() => addRowsHundredThousand(selectedTable.id)}
+                    className="hover:text-blue-600"
+                  >
+                    Add 100k Rows
+                  </Button>
+                  <Button
+                    onClick={() => renameTable(selectedTable.id)}
+                    className="hover:text-blue-600"
+                  >
+                    Rename
+                  </Button>
+                  <Button
+                    onClick={() => deleteCurrentTable(selectedTable.id)}
+                    className="hover:text-red-600"
+                  >
+                    Delete
+                  </Button>
+                </div>
+                <p
+                  className="text-sm text-gray-500 text-center h-full px-4"
+                >
+                  {`Total rows: ${selectedTable.rowCount}`}
+                </p>
+              </div>
             </div>
-            <p>
-              {`Total rows: ${selectedTable.rowCount}`}
-            </p>
             <TableView tableId={selectedTable.id} />
           </>
           : <div>Select or create a table</div>
