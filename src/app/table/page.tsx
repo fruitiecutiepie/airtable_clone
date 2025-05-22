@@ -1,66 +1,49 @@
-// App.tsx
-"use client"
-import React from "react"
-import { useTables } from "~/app/hooks/useTables"
-import { useSession } from "next-auth/react"
-import TablePage from "~/app/table/[tableId]/page";
-import { Button } from "../components/ui/button";
+"use client";
+
+import React from "react";
+import { useTableUI } from "~/app/hooks/useTableUI";
+import TableView from "~/app/table/[tableId]/page";
+import { Button } from "~/app/components/ui/button";
 
 export default function App() {
-  const { data: session, status } = useSession();
-  console.log("session", session, status);
-
   const {
     tables,
-    selected,
-    setSelected,
-    createNew,
-    addHundredThousand,
-    rename,
-    deleteCurrTable
-  } = useTables()
+    selectedTable,
+    setSelectedTable,
+    addNewTable,
+    addRowsHundredThousand,
+    renameTable,
+    deleteCurrentTable
+  } = useTableUI();
 
   return (
-    <div>
-      <div style={{ display: "flex" }}>
-        <aside style={{ width: 200, borderRight: "1px solid #ddd", padding: 8 }}>
-          <Button onClick={createNew}>+ New Table</Button>
-          <ul>
-            {tables?.map(t => (
-              <li key={t.id}>
-                <Button
-                  onClick={() => setSelected(t.id)}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    background: t.id === selected ? "#eee" : "transparent",
-                  }}
-                >
-                  {t.name}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </aside>
-        <main style={{ flex: 1, padding: 16 }}>
-          {selected != null
-            ? (
-              <>
-                <Button onClick={addHundredThousand} style={{ marginTop: 8 }}>
-                  Add 100,000 Rows
-                </Button>
-                <Button onClick={() => rename(selected)} style={{ marginTop: 8 }}>
-                  Rename Table
-                </Button>
-                <Button onClick={() => deleteCurrTable(selected)} style={{ marginTop: 8 }}>
-                  Delete Table
-                </Button>
-                <TablePage params={{ tableId: selected }} />
-              </>
-            )
-            : <div>Select or create a table</div>}
-        </main>
-      </div>
-    </div >
-  )
+    <div className="flex">
+      <aside className="w-48 p-2 border-r">
+        <Button onClick={addNewTable}>+ New Table</Button>
+        <ul>
+          {tables?.map(t => (
+            <li key={t.id}>
+              <Button onClick={() => setSelectedTable(t)} className={t.id === selectedTable?.id ? "bg-gray-200" : ""}>{t.name}</Button>
+            </li>
+          ))}
+        </ul>
+      </aside>
+      <main className="flex-1 p-4">
+        {selectedTable ?
+          <>
+            <div className="flex gap-2 mb-4">
+              <Button onClick={() => addRowsHundredThousand(selectedTable.id)}>Add 100k Rows</Button>
+              <Button onClick={() => renameTable(selectedTable.id)}>Rename</Button>
+              <Button onClick={() => deleteCurrentTable(selectedTable.id)}>Delete</Button>
+            </div>
+            <p>
+              {`Total rows: ${selectedTable.rowCount}`}
+            </p>
+            <TableView tableId={selectedTable.id} />
+          </>
+          : <div>Select or create a table</div>
+        }
+      </main>
+    </div>
+  );
 }

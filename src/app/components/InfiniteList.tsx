@@ -11,7 +11,7 @@ export default function InfiniteList() {
   } = useInfiniteRows({
     tableId: 42,
     limit: 100,
-    cursor: null,
+    cursor: undefined,
     sortCol: "id",
     sortDir: "asc",
     filters: {},
@@ -36,7 +36,7 @@ export default function InfiniteList() {
       {data
         ?
         <ul>
-          {data.rows.map(page =>
+          {data.pages[0]?.rows.map(page =>
             <li key={page.id}>{JSON.stringify(page)}</li>
           )}
         </ul>
