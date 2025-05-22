@@ -1,11 +1,13 @@
+import type { PlaceholderDataFunction } from '@tanstack/react-query';
+
 import {
   defaultShouldDehydrateQuery,
   QueryClient,
 } from "@tanstack/react-query";
 import SuperJSON from "superjson";
 
-export const createQueryClient = () =>
-  new QueryClient({
+export const createQueryClient = () => {
+  const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
         // With SSR, we usually want to set some default staleTime
@@ -23,3 +25,15 @@ export const createQueryClient = () =>
       },
     },
   });
+
+  queryClient.setDefaultOptions({
+    queries: {
+      placeholderData: (queryKey: unknown[]) => {
+        if (!queryKey) return undefined;
+        return queryClient.getQueryData(queryKey);
+      },
+    },
+  });
+
+  return queryClient;
+};
