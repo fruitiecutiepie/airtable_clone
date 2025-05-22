@@ -200,31 +200,27 @@ export default function TableView({ tableId }: { tableId: number }) {
 
   return (
     <div>
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex gap-2 w-full">
         <div
-          className="flex-1 flex items-center gap-2 w-12"
+          className="flex-1 flex items-center justify-between gap-2 w-full"
         >
           <Button onClick={async () => {
             await onAddColumn();
           }}
-            className="flex border border-blue-700 hover:bg-gray-50 justify-center items-center text-center"
+            className="flex border w-48 border-blue-700 hover:bg-gray-50 justify-center items-center text-center"
           >
             + Column
           </Button>
           <Button onClick={onInsertRow}
-            className="flex border border-blue-700 hover:bg-gray-50 justify-center items-center text-center"
+            className="flex border w-48 border-blue-700 hover:bg-gray-50 justify-center items-center text-center"
           >
             + Blank Row
           </Button>
-        </div>
-        <div
-          className="flex-1 flex items-center gap-2 w-full"
-        >
           <input
             placeholder="Search..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="border border-blue-700 text-gray-700 rounded px-3 py-2 w-full outline-none focus:outline-none ring-0"
+            className="border border-blue-700 text-gray-700 px-3 py-1.5 h-full rounded-md w-full outline-none focus:outline-none ring-0"
           />
           <Button onClick={() => setSearch("")}
             className="flex hover:text-blue-600 justify-center items-center text-center"
@@ -273,6 +269,7 @@ export default function TableView({ tableId }: { tableId: number }) {
           Save Row
         </Button>
       </div>
+
 
       <div
         ref={scrollRef}
@@ -399,53 +396,66 @@ export default function TableView({ tableId }: { tableId: number }) {
               <th className="flex-none w-16 p-2"></th>
             </tr>
           </thead>
-          <tbody
-            style={{
-              position: "relative",
-              height: `${rowVirtualizer.getTotalSize()}px`,
-            }}
-            className="flex flex-col w-full"
-          >
-            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const row = table.getRowModel().rows[virtualRow.index];
-              if (!row) return null;
-              return (
-                <tr
-                  key={row.id}
-                  style={{
-                    position: "absolute",
-                    top: `${virtualRow.start}px`,
-                  }}
-                  className="w-full p-2 flex items-start justify-center gap-1"
+          {rows.length === 0 && !isLoading ? (
+            <tbody>
+              <tr>
+                <td
+                  colSpan={cols.length}
+                  className="p-4 text-center text-gray-500"
                 >
-                  {row.getVisibleCells().map((cell) => {
-                    const isIndex = cell.column.id === "#";
-                    const isActions = cell.column.id === "actions";
-                    return (
-                      <td
-                        key={cell.id}
-                        className={`flex-1 p-1 px-2 border border-gray-300 rounded gap-2
+                  No rows to display.
+                </td>
+              </tr>
+            </tbody>
+          ) : (
+            <tbody
+              style={{
+                position: "relative",
+                height: `${rowVirtualizer.getTotalSize()}px`,
+              }}
+              className="flex flex-col w-full"
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const row = table.getRowModel().rows[virtualRow.index];
+                if (!row) return null;
+                return (
+                  <tr
+                    key={row.id}
+                    style={{
+                      position: "absolute",
+                      top: `${virtualRow.start}px`,
+                    }}
+                    className="w-full p-2 flex items-start justify-center gap-1"
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const isIndex = cell.column.id === "#";
+                      const isActions = cell.column.id === "actions";
+                      return (
+                        <td
+                          key={cell.id}
+                          className={`flex-1 p-1 px-2 border border-gray-300 rounded gap-2
                           ${isActions
-                            ? "flex-none w-16 hover:bg-red-500"
-                            : isIndex
-                              ? "flex-none w-16 text-center"
-                              : "hover:bg-gray-50"
-                          }
+                              ? "flex-none w-16 hover:bg-red-500"
+                              : isIndex
+                                ? "flex-none w-16 text-center"
+                                : "hover:bg-gray-50"
+                            }
                         `}
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell ??
-                          ((ctx: CellContext<TableRow, TableRowValue>) =>
-                            String(ctx.getValue())),
-                          cell.getContext()
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell ??
+                            ((ctx: CellContext<TableRow, TableRowValue>) =>
+                              String(ctx.getValue())),
+                            cell.getContext()
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          )}
         </table>
       </div >
 
