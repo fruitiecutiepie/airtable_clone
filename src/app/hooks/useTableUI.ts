@@ -4,8 +4,7 @@ import { useState, useCallback } from "react";
 import { useTables } from "./useTables";
 import { api } from "~/trpc/react";
 import { nanoid } from "nanoid";
-import { fakeRows } from "../app/data/fakeRows";
-import { faker } from "@faker-js/faker";
+import { fakeRows } from "~/app/data/fakeRows";
 import type { TableColumnDataType, Table } from "~/schemas";
 
 export function useTableUI() {

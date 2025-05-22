@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "gen:fakeRows": "tsx src/app/scripts/generateFakeRows.ts",
+    "predev": "pnpm run gen:fakeRows",
+    "prebuild": "pnpm run gen:fakeRows",
     "build": "next build",
     "check": "next lint && tsc --noEmit",
     "dev": "next dev --turbo",
