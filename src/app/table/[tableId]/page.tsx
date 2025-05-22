@@ -5,7 +5,6 @@ import { nanoid } from "nanoid";
 import { useReactTable, getCoreRowModel, flexRender, type ColumnDef, type CellContext } from "@tanstack/react-table";
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useTableData } from "~/app/hooks/useTableData";
-import { useInfiniteRows } from "~/app/hooks/useInfiniteRows";
 import type { FilterOperation, TableColumn, TableColumnDataType, TableRow, TableRowValue } from "~/schemas";
 import { Button } from "~/app/components/ui/button";
 
@@ -13,6 +12,11 @@ export default function TableView({ tableId }: { tableId: number }) {
   const {
     columns,
     rows,
+    totalRows,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
     pageParams,
     setPageParams,
     search,
@@ -30,34 +34,16 @@ export default function TableView({ tableId }: { tableId: number }) {
     setEditing,
   } = useTableData(tableId);
 
-  // infinite scroll
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading
-  } = useInfiniteRows({
-    tableId,
-    ...pageParams
-  });
-
   useEffect(() => {
     if (hasNextPage) {
       void fetchNextPage();
     }
   }, []);
 
-  const infRows = useMemo(
-    () =>
-      data?.pages.flatMap((page) => page.rows) ?? [],
-    [data]
-  );
-
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const rowVirtualizer = useVirtualizer({
-    count: infRows.length,
+    count: rows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 35,     // average row height
     overscan: 10,               // buffer rows above/below viewport
@@ -69,10 +55,10 @@ export default function TableView({ tableId }: { tableId: number }) {
     if (!hasNextPage || isFetchingNextPage) return;
     const lastVisible = virtualItems[virtualItems.length - 1];
     // when the user is within 10 rows of the end
-    if (lastVisible && lastVisible.index >= infRows.length - 300) {
+    if (lastVisible && lastVisible.index >= rows.length - 300) {
       void fetchNextPage();
     }
-  }, [virtualItems, infRows.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [virtualItems, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const loader = useRef<HTMLDivElement>(null);
 
@@ -200,7 +186,7 @@ export default function TableView({ tableId }: { tableId: number }) {
   ], [columns, editing, setEditing, onSaveCell, onDeleteRow, onUpdateColumn, onDeleteColumn]);
 
   const table = useReactTable<TableRow>({
-    data: infRows,
+    data: rows,
     columns: cols,
     manualSorting: true,
     state: { sorting: pageParams.sortCol ? [{ id: pageParams.sortCol, desc: pageParams.sortDir === "desc" }] : [] },

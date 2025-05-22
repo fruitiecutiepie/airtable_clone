@@ -21,7 +21,11 @@ export function useTableData(tableId: number) {
 
   const {
     rows,
+    totalRows,
     nextCursor,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     isLoading,
     refetch: refetchRows,
     addRow,
@@ -113,6 +117,12 @@ export function useTableData(tableId: number) {
   return {
     columns,
     rows,
+    totalRows,
+    nextCursor,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+
     addRow,
     search,
     setSearch,
