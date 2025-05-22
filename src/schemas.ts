@@ -32,12 +32,11 @@ export type TableColumn = z.infer<typeof TableColumnSchema>;
 // Table
 
 export const TableSchema = z.object({
-  id: z.string(),
+  id: z.number(),
   name: z.string(),
-  columns: z.array(TableColumnSchema),
-  rows: z.array(TableRowSchema),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  rowCount: z.number(),
 });
 export type Table = z.infer<typeof TableSchema>;
 
@@ -56,16 +55,15 @@ export type Filter = z.infer<typeof FilterSchema>;
 
 // PageParams
 
-export type Cursor = { lastId: string; lastValue: string | number | boolean }
+export const CursorSchema = z.object({
+  lastId: z.string().optional(),
+  lastValue: TableRowValueSchema
+});
+export type Cursor = z.infer<typeof CursorSchema>;
 
 export const PageParamsSchema = z.object({
   pageSize: z.number(),
-  cursor: z
-    .object({
-      lastId: z.string().optional(),
-      lastValue: TableRowValueSchema
-    })
-    .optional(),
+  cursor: CursorSchema.optional(),
   sortCol: z.string().optional(),
   sortDir: z.enum(['asc', 'desc']).optional(),
   filters: z.record(FilterSchema).optional(),
