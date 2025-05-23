@@ -35,8 +35,7 @@ export const TableSchema = z.object({
   id: z.number(),
   name: z.string(),
   createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-  rowCount: z.number(),
+  updatedAt: z.string().datetime()
 });
 export type Table = z.infer<typeof TableSchema>;
 

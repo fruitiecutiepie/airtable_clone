@@ -37,7 +37,7 @@ export const addTable = publicProcedure
 
       await client.query(`
         CREATE TABLE ${tableName} (
-          id          TEXT         PRIMARY KEY,
+          id          BIGSERIAL    PRIMARY KEY,
           created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
           updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
           _search     TSVECTOR
@@ -49,6 +49,10 @@ export const addTable = publicProcedure
         CREATE INDEX IF NOT EXISTS idx_${tableName}_search
         ON ${tableName} USING GIN (_search)
       `);
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_${tableName}_created_at
+        ON ${tableName} (created_at DESC)
+      `);
 
       await updTableSearchTrigger(client, tableId, tableName)
 
@@ -57,8 +61,7 @@ export const addTable = publicProcedure
         id: tableId,
         name: input.name,
         createdAt: input.createdAt,
-        updatedAt: input.updatedAt,
-        rowCount: 0,
+        updatedAt: input.updatedAt
       };
     } catch (err: unknown) {
       await client.query('ROLLBACK');

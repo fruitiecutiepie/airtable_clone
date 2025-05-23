@@ -6,11 +6,10 @@ import { publicProcedure } from "../../trpc";
 export const addRow = publicProcedure
   .input(z.object({
     tableId: z.number(),
-    rowId: z.string(),
     data: z.record(TableRowValueSchema),
   }))
   .mutation(async ({ input }) => {
-    const { tableId, rowId, data } = input;
+    const { tableId, data } = input;
     const client = await pool.connect();
     try {
       // 1) fetch column metadata (in order)
@@ -33,7 +32,6 @@ export const addRow = publicProcedure
 
       // 2) build a values array, coercing each by type
       const values: unknown[] = [
-        rowId,
         ...cols.map((c) => {
           const raw = data[c.name];
           // explicit null for missing
@@ -64,7 +62,7 @@ export const addRow = publicProcedure
         INSERT INTO ${tableName} (${insertCols})
         VALUES (${placeholders})
         RETURNING id, ${colNames.join(', ')}
-      `,
+        `,
         values
       );
 

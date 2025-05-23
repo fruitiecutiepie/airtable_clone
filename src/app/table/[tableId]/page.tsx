@@ -93,7 +93,7 @@ export default function TableView({ tableId }: { tableId: number }) {
       data[c.name] = v;
     });
     await addRow(
-      { tableId, rowId: nanoid(), data },
+      { tableId: props.tableId, data },
       {
         onSuccess: () => {
           setNewRow(Object.fromEntries(columns.map(c => [c.name, ""])));

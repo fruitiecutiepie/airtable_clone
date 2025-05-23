@@ -7,7 +7,6 @@ export const addRows = publicProcedure
   .input(z.object({
     tableId: z.number(),
     rows: z.array(z.object({
-      rowId: z.string(),
       data: z.record(TableRowValueSchema)
     }))
   }))
@@ -32,8 +31,8 @@ export const addRows = publicProcedure
       const tableName = `data_${tableId}`;
 
       // insert each row in the same transaction
-      for (const { rowId, data } of rows) {
-        const values = [rowId, ...names.map((n) => data[n] ?? undefined)];
+      for (const { data } of rows) {
+        const values = [...names.map((n) => data[n] ?? undefined)];
         const insertCols = ["id", ...quoted].join(", ");
         const placeholders = values.map((_, i) => `$${i + 1}`).join(", ");
         await client.query(

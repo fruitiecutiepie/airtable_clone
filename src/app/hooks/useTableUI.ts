@@ -66,7 +66,6 @@ export function useTableUI() {
       const batch = fakeRows
         .slice(offset, offset + CHUNK)
         .map(row => ({
-          rowId: nanoid(),
           data: row
         }));
 
