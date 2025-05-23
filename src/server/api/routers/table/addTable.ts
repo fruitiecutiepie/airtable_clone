@@ -7,6 +7,7 @@ import { updTableSearchTrigger } from "./updTableSearchTrigger";
 
 export const addTable = publicProcedure
   .input(z.object({
+    baseId: z.number(),
     name: z.string().min(1).max(255),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
@@ -21,12 +22,12 @@ export const addTable = publicProcedure
       }>(
         `
         INSERT INTO app_tables(
-          name, created_at, updated_at
+          base_id, name, created_at, updated_at
         )
-        VALUES($1, $2, $3)
+        VALUES($1, $2, $3, $4)
         RETURNING table_id
         `,
-        [input.name, input.createdAt, input.updatedAt]
+        [input.baseId, input.name, input.createdAt, input.updatedAt]
       );
       if (insertResult.rowCount === 0 || !insertResult.rows[0]) {
         throw new Error('Failed to create table');

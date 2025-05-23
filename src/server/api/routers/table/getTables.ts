@@ -3,6 +3,12 @@ import { pool } from "~/app/db/db";
 import { publicProcedure } from "../../trpc";
 
 export const getTables = publicProcedure
+  .input(
+    z.object({
+      baseId: z.number(),
+      userId: z.string(),
+    })
+  )
   .output(
     z.array(
       z.object({
@@ -14,7 +20,7 @@ export const getTables = publicProcedure
       })
     )
   )
-  .query(async () => {
+  .query(async ({ input }) => {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -26,10 +32,15 @@ export const getTables = publicProcedure
         updated_at: Date;
       }>(
         `
-        SELECT table_id, name, created_at, updated_at
-          FROM app_tables
+        SELECT t.table_id, t.name, t.created_at, t.updated_at
+        FROM app_tables t
+        JOIN app_bases b
+          ON t.base_id = b.base_id
+        WHERE t.base_id = $1
+          AND b.user_id = $2
         ORDER BY created_at ASC
         `,
+        [input.baseId, input.userId]
       );
 
       const results = await Promise.all(
