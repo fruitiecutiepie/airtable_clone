@@ -5,7 +5,15 @@ import { useTableUI } from "~/app/hooks/useTableUI";
 import TableView from "~/app/table/[tableId]/page";
 import { Button } from "~/app/components/ui/button";
 
-export default function App() {
+interface TablePageProps {
+  userId: string
+  baseId: number
+}
+
+export default function TablePage({
+  userId,
+  baseId
+}: TablePageProps) {
   const {
     tables,
     selectedTable,
@@ -14,7 +22,7 @@ export default function App() {
     addRowsHundredThousand,
     renameTable,
     deleteCurrentTable
-  } = useTableUI();
+  } = useTableUI(userId, baseId)
 
   return (
     <div className="flex h-full">

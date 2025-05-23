@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useColumns } from "./useColumns";
 import { useRows } from "./useRows";
-import { nanoid } from "nanoid";
-import type { TableColumn, TableRowValue, PageParams, TableColumnDataType } from "~/schemas";
+import type { TableColumn, TableRowValue, PageParams, TableColumnDataType, SavedFilter } from "~/schemas";
+import { api } from "~/trpc/react";
+import { useSavedFilters } from "./useSavedFilters";
 
-export function useTableData(tableId: number) {
+export function useTableData(
+  tableId: number,
+  baseId: number,
+  userId: string
+) {
   const [pageParams, setPageParams] = useState<PageParams>({ pageSize: 1000 });
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<{ rowId: string; col: string } | undefined>(undefined);
@@ -29,14 +34,32 @@ export function useTableData(tableId: number) {
     isLoading,
     refetch: refetchRows,
     addRow,
-    updateRow,
+    // updateRow,
     deleteRow,
   } = useRows(tableId, { ...pageParams, search });
+
+  const {
+    filters: savedFilters,
+    isLoading: isSavedFiltersLoading,
+    refetch: refetchSavedFilters,
+    setSavedFilter,
+    deleteFilter,
+  } = useSavedFilters(userId, baseId, tableId);
+
 
   const hasMore = !!nextCursor;
   const loadMore = () => {
     if (!hasMore) return;
     setPageParams((p) => ({ ...p, lastId: nextCursor }));
+  };
+
+  const onApplySavedFilter = (filter: SavedFilter) => {
+    setPageParams((p) => ({
+      ...p,
+      filters: filter.filters,
+      cursor: undefined,
+    }));
+    void refetchRows();
   };
 
   const onSaveCell = async (
@@ -141,5 +164,12 @@ export function useTableData(tableId: number) {
     onDeleteColumn,
     refetchColumns,
     refetchRows,
+
+    savedFilters,
+    isSavedFiltersLoading,
+    onApplySavedFilter,
+    refetchSavedFilters,
+    setSavedFilter,
+    deleteFilter,
   };
 }

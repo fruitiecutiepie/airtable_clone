@@ -3,18 +3,20 @@
 import { useState, useCallback } from "react";
 import { useTables } from "./useTables";
 import { api } from "~/trpc/react";
-import { nanoid } from "nanoid";
 import { fakeRows } from "~/app/data/fakeRows";
 import type { TableColumnDataType, Table } from "~/schemas";
 
-export function useTableUI() {
+export function useTableUI(
+  userId: string,
+  baseId: number,
+) {
   const {
     tables,
     refetch,
     addTable,
     updateTable,
     deleteTable,
-  } = useTables();
+  } = useTables(userId, baseId);
 
   const addColumn = api.table.addColumn.useMutation();
   const addRows = api.table.addRows.useMutation();
@@ -26,7 +28,7 @@ export function useTableUI() {
     if (!name) return;
     const now = new Date().toISOString();
 
-    const table = await addTable({ name, createdAt: now, updatedAt: now });
+    const table = await addTable({ baseId, name, createdAt: now, updatedAt: now });
 
     const defs = [
       { name: "firstName", dataType: "text" as TableColumnDataType },
@@ -44,7 +46,6 @@ export function useTableUI() {
     }
 
     const rows = fakeRows.slice(0, 100).map(row => ({
-      rowId: nanoid(),
       data: {
         firstName: row.firstName,
         age: row.age,
@@ -56,7 +57,7 @@ export function useTableUI() {
 
     await refetch();
     setSelectedTable(table);
-  }, [addTable, addColumn, addRows, refetch]);
+  }, [baseId, addTable, addColumn, addRows, refetch]);
 
   const addRowsHundredThousand = useCallback(async (tableId: number) => {
     const TOTAL = fakeRows.length;
@@ -76,14 +77,14 @@ export function useTableUI() {
     }
 
     await refetch();
-  }, [selectedTable, addRows, refetch]);
+  }, [addRows, refetch]);
 
   const renameTable = useCallback(async (tableId: number) => {
     const name = prompt("New table name?");
     if (!name) return;
-    await updateTable({ tableId, name });
+    await updateTable({ userId, baseId, tableId, name });
     await refetch();
-  }, [updateTable, refetch]);
+  }, [userId, baseId, updateTable, refetch]);
 
   const deleteCurrentTable = useCallback(async (tableId: number) => {
     if (!confirm("Delete this table?")) return;

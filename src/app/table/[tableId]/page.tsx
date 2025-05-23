@@ -8,7 +8,13 @@ import { useTableData } from "~/app/hooks/useTableData";
 import type { FilterOperation, TableColumn, TableColumnDataType, TableRow, TableRowValue } from "~/schemas";
 import { Button } from "~/app/components/ui/button";
 
-export default function TableView({ tableId }: { tableId: number }) {
+interface TableViewProps {
+  userId: string;
+  baseId: number;
+  tableId: number;
+}
+
+export default function TableView(props: TableViewProps) {
   const {
     columns,
     rows,
@@ -32,7 +38,15 @@ export default function TableView({ tableId }: { tableId: number }) {
     refetchRows,
     editing,
     setEditing,
-  } = useTableData(tableId);
+    updatingCell,
+
+    savedFilters,
+    isSavedFiltersLoading,
+    onApplySavedFilter,
+    refetchSavedFilters,
+    setSavedFilter,
+    deleteFilter,
+  } = useTableData(props.tableId, props.baseId, props.userId);
 
   useEffect(() => {
     if (hasNextPage) {
