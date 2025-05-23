@@ -86,3 +86,16 @@ CREATE TABLE IF NOT EXISTS app_columns (
   updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
   CONSTRAINT uq_table_column UNIQUE (table_id, name)
 );
+
+CREATE TABLE IF NOT EXISTS saved_filters (
+  filter_id   SERIAL       PRIMARY KEY,
+  user_id     TEXT         NOT NULL REFERENCES users(public_id) ON DELETE CASCADE,
+  base_id     INT          NOT NULL REFERENCES app_bases(base_id) ON DELETE CASCADE,
+  table_id    INT          NOT NULL REFERENCES app_tables(table_id) ON DELETE CASCADE,
+  name        TEXT         NOT NULL,
+  filters     JSONB        NOT NULL,
+  created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  CONSTRAINT uq_user_table_filter UNIQUE (user_id, table_id, name)
+);
+CREATE INDEX ON saved_filters(user_id, table_id);

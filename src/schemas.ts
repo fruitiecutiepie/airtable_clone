@@ -63,6 +63,15 @@ export const FilterSchema = z.object({
 });
 export type Filter = z.infer<typeof FilterSchema>;
 
+export const SavedFilterSchema = z.object({
+  filter_id: z.number(),
+  name: z.string(),
+  filters: z.record(FilterSchema),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type SavedFilter = z.infer<typeof SavedFilterSchema>;
+
 // PageParams
 
 export const CursorSchema = z.object({
