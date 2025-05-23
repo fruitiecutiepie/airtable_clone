@@ -1,10 +1,11 @@
 "use client"
 import { useSession, signIn, signOut } from "next-auth/react"
-import { Button } from "./components/ui/button"
-import App from "./table/page"
+import { Button } from "./components/ui/button";
+import BaseList from "~/components/BaseList";
 
 export default function Page() {
   const { data: session, status } = useSession();
+
   if (status === "loading") return (
     <div
       className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white"
@@ -43,7 +44,7 @@ export default function Page() {
       <div
         className="flex flex-col h-full w-full"
       >
-        <App />
+        <BaseList userId={session.user.public_id} />
       </div>
     </div>
   )
