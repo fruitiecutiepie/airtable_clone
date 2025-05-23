@@ -29,24 +29,23 @@ export const updColumn = publicProcedure
       if (!oldItem) throw new Error("Column not found");
       const oldName = oldItem.name;
       // rename the physical column
-      await client.query(
-        `ALTER TABLE ${tableName}
-             RENAME COLUMN "${oldName}" TO "${name}"
-          `
-      );
+      await client.query(`
+        ALTER TABLE ${tableName}
+        RENAME COLUMN "${oldName}" TO "${name}"
+      `);
       // change its type if needed
-      await client.query(
-        `ALTER TABLE ${tableName}
-             ALTER COLUMN "${name}" TYPE ${dataType}
-             USING "${name}"::${dataType}
-          `
-      );
+      await client.query(`
+        ALTER TABLE ${tableName}
+        ALTER COLUMN "${name}" TYPE ${dataType}
+        USING "${name}"::${dataType}
+      `);
       // update our metadata table
       await client.query(
-        `UPDATE app_columns
-              SET name = $1, data_type = $2
-            WHERE column_id = $3
-          `,
+        `
+        UPDATE app_columns
+        SET name = $1, data_type = $2
+        WHERE column_id = $3
+        `,
         [name, dataType, columnId]
       );
       // rebuild search trigger
