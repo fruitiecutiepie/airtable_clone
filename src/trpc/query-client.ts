@@ -1,5 +1,3 @@
-import type { PlaceholderDataFunction } from '@tanstack/react-query';
-
 import {
   defaultShouldDehydrateQuery,
   QueryClient,

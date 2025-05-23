@@ -1,8 +1,7 @@
-import { type Account, type DefaultSession, type NextAuthConfig, type Session } from "next-auth";
+import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import { env } from "~/env";
 import "next-auth/jwt";
-import type { JWT } from "next-auth/jwt";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -44,13 +43,14 @@ export const authConfig = {
   secret: env.AUTH_SECRET,
   session: { strategy: "jwt" },
   callbacks: {
-    async jwt({ token, account }) {
-      if (account?.access_token) token.accessToken = account.access_token
+    async jwt({ token, user }) {
+      if (user?.public_id) token.public_id = user.public_id;
       return token
     },
     async session({ session, token }) {
-      if (token.accessToken) session.accessToken = token.accessToken
+      session.user.public_id = token.public_id;
+      session.user.id = token.public_id;
       return session
-    },
+    }
   },
 } satisfies NextAuthConfig;
