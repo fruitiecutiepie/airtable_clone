@@ -53,12 +53,27 @@ CREATE TABLE IF NOT EXISTS users
 
 -- Application-specific tables
 
+CREATE TABLE IF NOT EXISTS app_bases (
+  base_id    SERIAL       PRIMARY KEY,
+  user_id    TEXT         NOT NULL
+    REFERENCES users(public_id) ON DELETE CASCADE,
+  name       TEXT         NOT NULL,
+  created_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  CONSTRAINT uq_user_base UNIQUE(user_id, name)
+);
+CREATE INDEX ON app_bases(user_id);
+CREATE INDEX ON app_bases(user_id, base_id);
+
 CREATE TABLE IF NOT EXISTS app_tables (
   table_id    SERIAL       PRIMARY KEY,
+  base_id     INT          NOT NULL
+    REFERENCES app_bases(base_id) ON DELETE CASCADE,
   name        TEXT         NOT NULL UNIQUE,
   created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
+CREATE INDEX ON app_tables(base_id);
 
 CREATE TABLE IF NOT EXISTS app_columns (
   column_id   SERIAL       PRIMARY KEY,

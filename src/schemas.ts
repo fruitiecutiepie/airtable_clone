@@ -40,6 +40,17 @@ export const TableSchema = z.object({
 });
 export type Table = z.infer<typeof TableSchema>;
 
+// Base
+
+export const BaseSchema = z.object({
+  id: z.number(),
+  userId: z.string(),
+  name: z.string(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type Base = z.infer<typeof BaseSchema>;
+
 // Filter
 
 export const FilterOperationSchema = z.enum([
