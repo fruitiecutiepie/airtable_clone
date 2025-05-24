@@ -25,8 +25,7 @@ export const updBase = publicProcedure
       }>(
         `
         UPDATE app_bases
-        SET name       = $1,
-            updated_at = now()
+        SET name       = $1
         WHERE base_id = $2
           AND user_id = $3
         RETURNING base_id, name, created_at, updated_at

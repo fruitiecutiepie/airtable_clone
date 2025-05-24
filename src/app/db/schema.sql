@@ -70,9 +70,10 @@ CREATE TABLE IF NOT EXISTS app_tables (
   table_id    SERIAL       PRIMARY KEY,
   base_id     INT          NOT NULL
     REFERENCES app_bases(base_id) ON DELETE CASCADE,
-  name        TEXT         NOT NULL UNIQUE,
+  name        TEXT         NOT NULL,
   created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
+  updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  CONSTRAINT uq_base_table UNIQUE(base_id, name)
 );
 CREATE INDEX ON app_tables(base_id);
 
@@ -210,3 +211,44 @@ CREATE POLICY saved_filters_owner_only
   USING ( user_id = current_setting('app.current_user') )
   WITH CHECK ( user_id = current_setting('app.current_user') );
 
+-- Triggers
+
+-- Overhead
+  -- The trigger fires within your UPDATE statement for each row; 
+  -- it does not issue a separate SQL command or round-trip.
+
+  -- It does incur a tiny per-row PL/pgSQL function call, 
+  -- but in practice that cost is negligible compared to I/O or other query work.
+
+CREATE OR REPLACE FUNCTION set_updated_at()
+  RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER app_bases_set_updated_at
+  BEFORE UPDATE ON app_bases
+  FOR EACH ROW
+  EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER app_tables_set_updated_at
+  BEFORE UPDATE ON app_tables
+  FOR EACH ROW
+  EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER app_columns_set_updated_at
+  BEFORE UPDATE ON app_columns
+  FOR EACH ROW
+  EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER app_rows_set_updated_at
+  BEFORE UPDATE ON app_rows
+  FOR EACH ROW
+  EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER saved_filters_set_updated_at
+  BEFORE UPDATE ON saved_filters
+  FOR EACH ROW
+  EXECUTE FUNCTION set_updated_at();

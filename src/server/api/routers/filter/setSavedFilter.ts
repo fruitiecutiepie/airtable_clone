@@ -44,8 +44,7 @@ export const setSavedFilter = publicProcedure
         )
         ON CONFLICT (user_id, table_id, name)
         DO UPDATE
-          SET filters    = EXCLUDED.filters,
-              updated_at = now()
+          SET filters    = EXCLUDED.filters
         RETURNING filter_id
         `, [
         input.userId,
