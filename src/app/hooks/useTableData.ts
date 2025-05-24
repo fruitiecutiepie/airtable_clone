@@ -53,6 +53,11 @@ export function useTableData(
     setPageParams((p) => ({ ...p, lastId: nextCursor }));
   };
 
+  useEffect(() => {
+    setPageParams((p) => ({ ...p, cursor: undefined }));
+    void refetchRows();
+  }, [search, refetchRows]);
+
   const onApplySavedFilter = (filter: SavedFilter) => {
     setPageParams((p) => ({
       ...p,
