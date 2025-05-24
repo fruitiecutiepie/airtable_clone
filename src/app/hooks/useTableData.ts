@@ -116,12 +116,14 @@ export function useTableData(
   ) => {
     const newName = prompt("Rename column", currentName);
     // const newType = prompt("Type? (text,numeric,boolean,date)", "") as TableColumnDataType;
+    // const newPosition = prompt("Position? (zero-based)", "") as number;
     if (!newName) return;
     await updateColumn({
       tableId,
       columnId,
       name: newName,
-      dataType: currentDataType
+      dataType: currentDataType,
+      position: columns.findIndex(c => c.columnId === columnId),
     });
     // reset pagination cursor
     setPageParams(p => ({ pageSize: p.pageSize }));
