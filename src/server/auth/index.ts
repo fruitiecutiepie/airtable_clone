@@ -36,6 +36,14 @@ const { auth: uncachedAuth, handlers, signIn, signOut } = NextAuth(() => {
       if (!user) {
         throw new Error("Failed to create user");
       }
+
+      pool.on("connect", async (client: Pool) => {
+        await client.query(
+          `SET app.current_user = $1`,
+          [user.public_id]
+        );
+      });
+
       return user;
     }
   };

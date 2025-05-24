@@ -22,7 +22,7 @@ export default function TablePage({
     addRowsHundredThousand,
     renameTable,
     deleteCurrentTable
-  } = useTableUI(userId, baseId)
+  } = useTableUI(baseId)
 
   return (
     <div className="flex h-full">
@@ -79,7 +79,7 @@ export default function TablePage({
                 </div>
               </div>
             </div>
-            <TableView tableId={selectedTable.id} />
+            <TableView userId={userId} baseId={baseId} tableId={selectedTable.id} />
           </>
           : <div>Select or create a table</div>
         }

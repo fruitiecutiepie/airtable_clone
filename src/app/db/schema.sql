@@ -117,3 +117,96 @@ CREATE TABLE IF NOT EXISTS saved_filters (
   CONSTRAINT uq_user_table_filter UNIQUE (user_id, table_id, name)
 );
 CREATE INDEX ON saved_filters(user_id, table_id);
+
+-- RLS
+
+-- USING (…) controls which existing rows a user can read, update or delete.
+-- WITH CHECK (…) controls which new or modified rows a user is allowed to write.
+-- If you omit WITH CHECK, anyone can insert or update rows regardless of ownership policy.
+
+-- In Postgres both typically become a semi-join in the planner, but:
+  -- EXISTS (SELECT 1 … WHERE …) stops at the first match and is very efficient for correlated checks.
+  -- … IN (SELECT col … ) often builds a transient hash or sorts the inner set, which can be slightly heavier if the inner set is large.
+-- For owner-only policies (checking a single base/user match), EXISTS is marginally better and clearer.
+
+ALTER TABLE app_bases ENABLE ROW LEVEL SECURITY;
+CREATE POLICY app_bases_owner_only
+  ON app_bases
+  FOR ALL
+  USING ( user_id = current_setting('app.current_user') )
+  WITH CHECK ( user_id = current_setting('app.current_user') );
+
+ALTER TABLE app_tables ENABLE ROW LEVEL SECURITY;
+CREATE POLICY app_tables_owner_only
+  ON app_tables
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1
+        FROM app_bases b
+       WHERE b.base_id = app_tables.base_id
+         AND b.user_id = current_setting('app.current_user')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+        FROM app_bases b
+       WHERE b.base_id = app_tables.base_id
+         AND b.user_id = current_setting('app.current_user')
+    )
+  );
+
+ALTER TABLE app_columns ENABLE ROW LEVEL SECURITY;
+CREATE POLICY app_columns_owner_only
+  ON app_columns
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1
+        FROM app_tables t
+        JOIN app_bases b ON t.base_id = b.base_id
+       WHERE t.table_id = app_columns.table_id
+         AND b.user_id = current_setting('app.current_user')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+        FROM app_tables t
+        JOIN app_bases b ON t.base_id = b.base_id
+       WHERE t.table_id = app_columns.table_id
+         AND b.user_id = current_setting('app.current_user')
+    )
+  );
+
+ALTER TABLE app_rows ENABLE ROW LEVEL SECURITY;
+CREATE POLICY app_rows_owner_only
+  ON app_rows
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1
+        FROM app_tables t
+        JOIN app_bases b ON t.base_id = b.base_id
+       WHERE t.table_id = app_rows.table_id
+         AND b.user_id = current_setting('app.current_user')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+        FROM app_tables t
+        JOIN app_bases b ON t.base_id = b.base_id
+       WHERE t.table_id = app_rows.table_id
+         AND b.user_id = current_setting('app.current_user')
+    )
+  );
+
+ALTER TABLE saved_filters ENABLE ROW LEVEL SECURITY;
+CREATE POLICY saved_filters_owner_only
+  ON saved_filters
+  FOR ALL
+  USING ( user_id = current_setting('app.current_user') )
+  WITH CHECK ( user_id = current_setting('app.current_user') );
+

@@ -7,8 +7,7 @@ import { fakeRows } from "~/app/data/fakeRows";
 import type { TableColumnDataType, Table } from "~/schemas";
 
 export function useTableUI(
-  userId: string,
-  baseId: number,
+  baseId: number
 ) {
   const {
     tables,
@@ -16,7 +15,7 @@ export function useTableUI(
     addTable,
     updateTable,
     deleteTable,
-  } = useTables(userId, baseId);
+  } = useTables(baseId);
 
   const addColumn = api.table.addColumn.useMutation();
   const addRows = api.table.addRows.useMutation();
@@ -46,11 +45,9 @@ export function useTableUI(
     }
 
     const rows = fakeRows.slice(0, 100).map(row => ({
-      data: {
-        firstName: row.firstName,
-        age: row.age,
-        email: row.email,
-      },
+      firstName: row.firstName,
+      age: row.age,
+      email: row.email
     }));
 
     await addRows.mutateAsync({
@@ -68,11 +65,8 @@ export function useTableUI(
     const CHUNK = 1_000;
 
     for (let offset = 0; offset < TOTAL; offset += CHUNK) {
-      const batch = fakeRows
+      const rows = fakeRows
         .slice(offset, offset + CHUNK)
-        .map(row => ({
-          data: row
-        }));
 
       await addRows.mutateAsync({
         tableId: tableId,
@@ -87,9 +81,9 @@ export function useTableUI(
   const renameTable = useCallback(async (tableId: number) => {
     const name = prompt("New table name?");
     if (!name) return;
-    await updateTable({ userId, baseId, tableId, name });
+    await updateTable({ baseId, tableId, name });
     await refetch();
-  }, [userId, baseId, updateTable, refetch]);
+  }, [baseId, updateTable, refetch]);
 
   const deleteCurrentTable = useCallback(async (tableId: number) => {
     if (!confirm("Delete this table?")) return;

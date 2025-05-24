@@ -2,6 +2,7 @@ import { z } from "zod";
 import { pool } from "~/app/db/db";
 import { publicProcedure } from "../../trpc";
 import { BaseSchema } from "~/schemas";
+import { TRPCError } from "@trpc/server";
 
 export const getBases = publicProcedure
   .input(
@@ -36,8 +37,11 @@ export const getBases = publicProcedure
         createdAt: r.created_at.toISOString(),
         updatedAt: r.updated_at.toISOString(),
       }));
-    } catch (error) {
-      throw error;
+    } catch (err) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       client.release();
     }

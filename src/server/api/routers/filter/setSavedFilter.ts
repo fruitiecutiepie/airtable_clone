@@ -53,6 +53,8 @@ export const setSavedFilter = publicProcedure
         input.tableId,
         input.name,
         JSON.stringify(input.filters),
+        input.createdAt,
+        input.updatedAt,
       ]);
       if (result.rowCount === 0 || !result.rows[0]) {
         throw new Error('Failed to create filter');

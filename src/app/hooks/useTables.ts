@@ -4,13 +4,9 @@ import { api } from "~/trpc/react";
 import type { Table } from "~/schemas";
 
 export function useTables(
-  userId: string,
   baseId: number
 ) {
-  const query = api.table.getTables.useQuery({
-    userId,
-    baseId
-  });
+  const query = api.table.getTables.useQuery({ baseId });
   const add = api.table.addTable.useMutation();
   const update = api.table.updTable.useMutation();
   const remove = api.table.delTable.useMutation();
