@@ -1,56 +1,76 @@
 import { z } from "zod";
 import { pool } from "~/app/db/db";
-import { TableRowValueSchema } from "~/schemas";
+import { TableRowValueSchema, type TableColumnDataType } from "~/schemas";
 import { publicProcedure } from "../../trpc";
+import { TRPCError } from "@trpc/server";
 
 export const addRows = publicProcedure
-  .input(z.object({
-    tableId: z.number(),
-    rows: z.array(z.object({
-      data: z.record(TableRowValueSchema)
-    }))
-  }))
+  .input(
+    z.object({
+      tableId: z.number(),
+      createdAt: z.string().datetime(),
+      rows: z.array(z.record(TableRowValueSchema)),
+    })
+  )
   .mutation(async ({ input }) => {
-    const { tableId, rows } = input;
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
 
-      // fetch column order
-      const colsRes = await client.query<{ name: string }>(
+      const { rows: cols } = await client.query<{
+        name: string;
+        data_type: TableColumnDataType;
+      }>(
         `
-        SELECT name
+        SELECT name, data_type
         FROM app_columns
-        WHERE table_id=$1
+        WHERE table_id = $1
         ORDER BY position
         `,
-        [tableId]
+        [input.tableId]
       );
-      const names = colsRes.rows.map((c) => c.name);
-      const quoted = names.map((n) => `"${n}"`);
-      const tableName = `data_${tableId}`;
 
-      // insert each row in the same transaction
-      for (const { data } of rows) {
-        const values = [...names.map((n) => data[n] ?? undefined)];
-        const insertCols = ["id", ...quoted].join(", ");
-        const placeholders = values.map((_, i) => `$${i + 1}`).join(", ");
-        await client.query(
-          `
-          INSERT INTO ${tableName} (
-            ${insertCols}
-          )
-          VALUES (${placeholders})
-          `,
-          values
-        );
-      }
+      const zForType: Record<TableColumnDataType, z.ZodTypeAny> = {
+        text: z.string().optional(),
+        numeric: z.number().optional(),
+        boolean: z.boolean().optional(),
+        date: z.string().datetime().optional(),
+      };
+      const rowSchema = z.object(
+        Object.fromEntries(cols.map((c) => [c.name, zForType[c.data_type]]))
+      ).strict();
+
+      const jsonRows = input.rows.map((r, i) => {
+        const parsed = rowSchema.safeParse(r);
+        if (!parsed.success) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Row ${i} invalid: ${JSON.stringify(parsed.error.issues)}`,
+          });
+        }
+        return JSON.stringify(parsed.data);
+      });
+
+      const groups = jsonRows
+        .map((_, i) => `($1, $2, $${i + 3}::jsonb)`)
+        .join(", ");
+      const values: unknown[] = [input.tableId, input.createdAt, ...jsonRows];
+
+      await client.query(
+        `
+        INSERT INTO app_rows (table_id, created_at, data)
+        VALUES ${groups}
+        `,
+        values
+      );
 
       await client.query("COMMIT");
-      return { count: rows.length };
     } catch (err) {
       await client.query("ROLLBACK");
-      throw err;
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: err instanceof Error ? err.message : String(err),
+      })
     } finally {
       client.release();
     }

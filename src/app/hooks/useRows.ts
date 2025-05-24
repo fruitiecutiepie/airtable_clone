@@ -24,8 +24,7 @@ export function useRows(
   const totalRows = inf.data?.pages[0]?.totalRows;
 
   // mutations can stay exactly the same
-  const add = api.table.addRow.useMutation();
-  const addBulk = api.table.addRows.useMutation();
+  const add = api.table.addRows.useMutation();
   const update = api.table.updRow.useMutation();
   const remove = api.table.delRow.useMutation();
 
@@ -38,8 +37,7 @@ export function useRows(
     hasNextPage: inf.hasNextPage,
     fetchNextPage: inf.fetchNextPage,
     refetch: inf.refetch,
-    addRow: add.mutateAsync,
-    addRows: addBulk.mutateAsync,
+    addRows: add.mutateAsync,
     updateRow: update.mutateAsync,
     deleteRow: remove.mutateAsync,
   };

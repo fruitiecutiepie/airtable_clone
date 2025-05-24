@@ -33,7 +33,7 @@ export function useTableData(
     isFetchingNextPage,
     isLoading,
     refetch: refetchRows,
-    addRow,
+    addRows,
     // updateRow,
     deleteRow,
   } = useRows(tableId, { ...pageParams, search });
@@ -84,16 +84,11 @@ export function useTableData(
   };
 
   const onInsertRow = async () => {
-    const data: Record<string, TableRowValue> = {};
-    // columns.forEach((c) => {
-    //   if (c.data_type === "numeric") data[c.name] = 0;
-    //   else if (c.data_type === "boolean") data[c.name] = false;
-    //   else if (c.data_type === "date")
-    //     data[c.name] = new Date().toISOString().split("T")[0];
-    //   else data[c.name] = "";
-    // });
-
-    await addRow({ tableId, rowId: nanoid(), data });
+    const data: Record<string, TableRowValue> = Object.fromEntries(
+      columns.map((c) => [c.name, undefined])
+    );
+    await addRows({ tableId, rows: [data], createdAt: new Date().toISOString() });
+    setPageParams((p) => ({ ...p, cursor: undefined }));
     await Promise.all([refetchColumns(), refetchRows()]);
   };
 
@@ -146,7 +141,7 @@ export function useTableData(
     hasNextPage,
     isFetchingNextPage,
 
-    addRow,
+    addRows,
     search,
     setSearch,
     isLoading,

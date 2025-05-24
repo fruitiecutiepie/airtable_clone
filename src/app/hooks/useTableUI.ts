@@ -53,7 +53,11 @@ export function useTableUI(
       },
     }));
 
-    await addRows.mutateAsync({ tableId: table.id, rows });
+    await addRows.mutateAsync({
+      tableId: table.id,
+      createdAt: now,
+      rows
+    });
 
     await refetch();
     setSelectedTable(table);
@@ -72,7 +76,8 @@ export function useTableUI(
 
       await addRows.mutateAsync({
         tableId: tableId,
-        rows: batch
+        createdAt: new Date().toISOString(),
+        rows
       });
     }
 
