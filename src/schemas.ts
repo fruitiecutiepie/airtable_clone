@@ -8,10 +8,13 @@ export const TableRowValueSchema = z.union([
 export type TableRowValue = z.infer<typeof TableRowValueSchema>;
 
 export const TableRowSchema = z.object({
-  id: z.string(),
-}).catchall(
-  TableRowValueSchema
-);
+  rowId: z.string(),
+  tableId: z.number(),
+  // Column name -> Value
+  data: z.record(TableRowValueSchema),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
 export type TableRow = z.infer<typeof TableRowSchema>;
 
 // TableColumn
@@ -22,9 +25,9 @@ export const TableColumnDataTypeSchema = z.enum([
 export type TableColumnDataType = z.infer<typeof TableColumnDataTypeSchema>;
 
 export const TableColumnSchema = z.object({
-  column_id: z.number(),
+  columnId: z.number(),
   name: z.string(),
-  data_type: TableColumnDataTypeSchema,
+  dataType: TableColumnDataTypeSchema,
   position: z.number(),
 });
 export type TableColumn = z.infer<typeof TableColumnSchema>;

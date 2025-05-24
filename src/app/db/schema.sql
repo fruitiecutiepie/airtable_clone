@@ -85,8 +85,25 @@ CREATE TABLE IF NOT EXISTS app_columns (
   position    INT          NOT NULL,
   created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  CONSTRAINT uq_table_column UNIQUE (table_id, name)
+  CONSTRAINT uq_table_column UNIQUE (table_id, name),
+  CONSTRAINT uq_table_column_position UNIQUE (table_id, position)
 );
+
+CREATE TABLE IF NOT EXISTS app_rows (
+  row_id         BIGSERIAL      PRIMARY KEY,
+  table_id       INT            NOT NULL  REFERENCES app_tables(table_id)  ON DELETE CASCADE,
+  data           JSONB          NOT NULL  DEFAULT '{}',
+  created_at     TIMESTAMPTZ    NOT NULL  DEFAULT now(),
+  updated_at     TIMESTAMPTZ    NOT NULL  DEFAULT now(),
+  -- full-text search over every value in the JSONB column
+  search_vector  TSVECTOR       GENERATED ALWAYS AS (to_tsvector('english', data::text)) STORED
+);
+
+-- index for keyset pagination
+CREATE INDEX ON app_rows(table_id, row_id);
+-- index for containment queries only
+CREATE INDEX ON app_rows USING GIN (data jsonb_path_ops);
+CREATE INDEX ON app_rows USING GIN (search_vector);
 
 CREATE TABLE IF NOT EXISTS saved_filters (
   filter_id   SERIAL       PRIMARY KEY,
