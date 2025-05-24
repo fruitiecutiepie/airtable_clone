@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { pool } from "~/app/db/db";
 import { publicProcedure } from "../../trpc";
-import { updTableSearchTrigger } from "./updTableSearchTrigger";
+import { TableColumnSchema } from "~/schemas";
+import { TRPCError } from "@trpc/server";
 
 export const addColumn = publicProcedure
   .input(
@@ -11,16 +12,16 @@ export const addColumn = publicProcedure
       dataType: z.enum(['text', 'numeric', 'boolean', 'date']),
       position: z.number(),
     }))
+  .output(TableColumnSchema)
   .mutation(async ({ input }) => {
     const { tableId, name, dataType, position } = input;
     const client = await pool.connect();
     try {
-      await client.query('BEGIN');
       const insertCol = await client.query<{
         column_id: number;
       }>(
         `
-        INSERT INTO app_columns(
+        INSERT INTO app_columns (
           table_id, name, data_type, position
         )
         VALUES($1, $2, $3, $4)
@@ -32,20 +33,13 @@ export const addColumn = publicProcedure
         throw new Error('Failed to create column');
       }
       const columnId = insertCol.rows[0].column_id;
-      const tableName = `data_${tableId}`;
-
-      await client.query(`
-        ALTER TABLE ${tableName} 
-        ADD COLUMN "${name}" ${dataType} NULL
-      `);
-
-      await updTableSearchTrigger(client, tableId, tableName)
-
-      await client.query('COMMIT');
-      return { column_id: columnId, name, dataType, position };
+      return { columnId, name, dataType, position };
     } catch (err: unknown) {
       await client.query('ROLLBACK');
-      return { error: err instanceof Error ? err.message : err };
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       client.release();
     }

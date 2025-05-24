@@ -1,28 +1,35 @@
 import { z } from "zod";
 import { pool } from "~/app/db/db";
 import { publicProcedure } from "../../trpc";
+import { TRPCError } from "@trpc/server";
 
 export const delRow = publicProcedure
   .input(
     z.object({
       tableId: z.number(),
       rowId: z.string(),
-    }))
+    })
+  )
   .mutation(async ({ input }) => {
     const { tableId, rowId } = input;
     const client = await pool.connect();
     try {
-      const tableName = `data_${tableId}`;
-      const result = await client.query(
+      const res = await client.query(
         `
-        DELETE FROM ${tableName} 
-        WHERE id = $1
+        DELETE FROM app_rows
+        WHERE row_id = $1 AND table_id = $2
         `,
-        [rowId]
+        [rowId, tableId]
       );
-      return result.rowCount && result.rowCount > 0;
-    } catch (err: unknown) {
-      return { error: err instanceof Error ? err.message : err };
+      if (!res.rowCount) {
+        throw new Error("Row not found");
+      }
+      return;
+    } catch (err) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       client.release();
     }

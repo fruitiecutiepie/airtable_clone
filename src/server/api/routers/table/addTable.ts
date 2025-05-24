@@ -3,7 +3,6 @@ import { z } from "zod";
 import { pool } from "~/app/db/db";
 import { TableSchema } from "~/schemas";
 import { publicProcedure } from "../../trpc";
-import { updTableSearchTrigger } from "./updTableSearchTrigger";
 
 export const addTable = publicProcedure
   .input(z.object({
@@ -16,7 +15,6 @@ export const addTable = publicProcedure
   .mutation(async ({ input }) => {
     const client = await pool.connect();
     try {
-      await client.query('BEGIN');
       const insertResult = await client.query<{
         table_id: number
       }>(
@@ -33,30 +31,7 @@ export const addTable = publicProcedure
         throw new Error('Failed to create table');
       }
       const tableId = insertResult.rows[0].table_id;
-      const tableName = `data_${tableId}`;
 
-      await client.query(`
-        CREATE TABLE ${tableName} (
-          id          BIGSERIAL    PRIMARY KEY,
-          created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-          updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-          _search     TSVECTOR
-        )
-      `);
-
-      // create index for full-text search
-      await client.query(`
-        CREATE INDEX IF NOT EXISTS idx_${tableName}_search
-        ON ${tableName} USING GIN (_search)
-      `);
-      await client.query(`
-        CREATE INDEX IF NOT EXISTS idx_${tableName}_created_at
-        ON ${tableName} (created_at DESC)
-      `);
-
-      await updTableSearchTrigger(client, tableId, tableName)
-
-      await client.query('COMMIT');
       return {
         id: tableId,
         name: input.name,
@@ -64,7 +39,6 @@ export const addTable = publicProcedure
         updatedAt: input.updatedAt
       };
     } catch (err: unknown) {
-      await client.query('ROLLBACK');
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: err instanceof Error ? err.message : String(err),

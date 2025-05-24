@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { pool } from "~/app/db/db";
-import { TableRowValueSchema, type TableRow } from "~/schemas";
+import { TableRowValueSchema } from "~/schemas";
 import { publicProcedure } from "../../trpc";
+import { TRPCError } from "@trpc/server";
 
 export const updRow = publicProcedure
   .input(
@@ -9,33 +10,29 @@ export const updRow = publicProcedure
       tableId: z.number(),
       rowId: z.string(),
       data: z.record(TableRowValueSchema),
-    }))
+    })
+  )
   .mutation(async ({ input }) => {
     const { tableId, rowId, data } = input;
     const client = await pool.connect();
     try {
-      const tableName = `data_${tableId}`;
-      const cols = Object.keys(data);
-      const colNamesQuoted = cols.map((c) => `"${c}"`);
-      const values = cols.map((c) => data[c]);
-
-      const setClauses = [
-        ...colNamesQuoted.map((col, i) => `${col} = $${i + 1}`),
-        'updated_at = now()'
-      ].join(', ');
-
-      const result = await client.query<TableRow>(
+      const result = await client.query(
         `
-        UPDATE ${tableName}
-        SET ${setClauses}
-        WHERE id = $${cols.length + 1}
-        RETURNING *
+        UPDATE app_rows
+        SET data = data || $2::jsonb
+        WHERE row_id = $1 AND table_id = $3
         `,
-        [...values, rowId]
+        [rowId, JSON.stringify(data), tableId]
       );
-      return result.rows[0];
-    } catch (err: unknown) {
-      return { error: err instanceof Error ? err.message : err };
+      if (!result.rowCount) {
+        throw new Error("Row not found");
+      }
+      return;
+    } catch (err) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       client.release();
     }

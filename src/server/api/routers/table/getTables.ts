@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { pool } from "~/app/db/db";
 import { publicProcedure } from "../../trpc";
+import { TRPCError } from "@trpc/server";
 
 export const getTables = publicProcedure
   .input(
     z.object({
-      baseId: z.number(),
-      userId: z.string(),
+      baseId: z.number()
     })
   )
   .output(
@@ -33,37 +33,41 @@ export const getTables = publicProcedure
       }>(
         `
         SELECT t.table_id, t.name, t.created_at, t.updated_at
-        FROM app_tables t
-        JOIN app_bases b
-          ON t.base_id = b.base_id
-        WHERE t.base_id = $1
-          AND b.user_id = $2
-        ORDER BY created_at ASC
+          FROM app_tables t
+         WHERE t.base_id = $1
+         ORDER BY t.created_at ASC
         `,
-        [input.baseId, input.userId]
+        [input.baseId]
       );
 
       const results = await Promise.all(
         rows.map(async (r) => {
-          const countRes = await client.query<{ count: string }>(`
+          const countRes = await client.query<{ count: string }>(
+            `
             SELECT COUNT(*) AS count
-            FROM data_${r.table_id}
-          `);
+              FROM app_rows
+             WHERE table_id = $1
+            `,
+            [r.table_id]
+          );
           return {
             id: r.table_id,
             name: r.name,
             createdAt: r.created_at.toISOString(),
             updatedAt: r.updated_at.toISOString(),
-            rowCount: Number(countRes.rows?.[0]?.count ?? 0),
+            rowCount: Number(countRes.rows[0]?.count ?? 0),
           };
         })
       );
 
       await client.query("COMMIT");
       return results;
-    } catch (error) {
+    } catch (err) {
       await client.query("ROLLBACK");
-      throw error;
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       client.release();
     }
