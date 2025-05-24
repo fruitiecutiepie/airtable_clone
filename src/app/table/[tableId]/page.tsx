@@ -241,6 +241,43 @@ export default function TableView(props: TableViewProps) {
           >
             Clear
           </Button>
+          <select
+            disabled={isSavedFiltersLoading}
+            defaultValue=""
+            onChange={e => {
+              const id = Number(e.target.value);
+              const sel = savedFilters?.find(f => f.filter_id === id);
+              if (sel) onApplySavedFilter(sel);
+            }}
+            className="border border-gray-700 text-gray-700 rounded px-2 py-1 focus:outline-none"
+          >
+            <option value="" disabled>
+              Load saved filter…
+            </option>
+            {savedFilters?.map(f => (
+              <option key={f.filter_id} value={f.filter_id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+          <Button
+            onClick={async () => {
+              const name = prompt("Name this filter set");
+              if (!name) return;
+              await setSavedFilter({
+                userId: props.userId,
+                baseId: props.baseId,
+                tableId: props.tableId,
+                name,
+                filters: pageParams.filters ?? {},
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              });
+            }}
+            className="border border-green-600 hover:bg-green-50 text-green-700 rounded px-2 py-1"
+          >
+            Save Filter
+          </Button>
         </div>
         <div
           className="flex items-center justify-between gap-2 w-40"
@@ -266,7 +303,7 @@ export default function TableView(props: TableViewProps) {
         <div
           className="flex gap-2 w-full"
         >
-          {columns.map((c: { column_id: number; name: string; data_type: TableColumnDataType }) =>
+          {columns.map((c: TableColumn) =>
             <input
               key={c.name}
               placeholder={c.name}
@@ -337,7 +374,7 @@ export default function TableView(props: TableViewProps) {
                 const f = pageParams.filters?.[col.name] ?? { op: "in", value: "" };
                 return (
                   <th key={col.name} className="flex-1 flex flex-row gap-2 w-full">
-                    {col.data_type === "numeric" ?
+                    {col.dataType === "numeric" ?
                       <>
                         <input
                           type="number"
@@ -410,8 +447,14 @@ export default function TableView(props: TableViewProps) {
               <th className="flex-none w-16 p-2"></th>
             </tr>
           </thead>
-          {rows.length === 0 && !isLoading ? (
-            <tbody>
+          <tbody
+            style={{
+              position: "relative",
+              height: `${rowVirtualizer.getTotalSize()}px`,
+            }}
+            className="flex flex-col w-full min-h-14"
+          >
+            {rows.length === 0 && !isLoading ? (
               <tr>
                 <td
                   colSpan={cols.length}
@@ -420,16 +463,8 @@ export default function TableView(props: TableViewProps) {
                   No rows to display.
                 </td>
               </tr>
-            </tbody>
-          ) : (
-            <tbody
-              style={{
-                position: "relative",
-                height: `${rowVirtualizer.getTotalSize()}px`,
-              }}
-              className="flex flex-col w-full"
-            >
-              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            ) : (
+              rowVirtualizer.getVirtualItems().map((virtualRow) => {
                 const row = table.getRowModel().rows[virtualRow.index];
                 if (!row) return null;
                 return (
@@ -467,9 +502,9 @@ export default function TableView(props: TableViewProps) {
                     })}
                   </tr>
                 );
-              })}
-            </tbody>
-          )}
+              })
+            )}
+          </tbody>
         </table>
       </div >
 
