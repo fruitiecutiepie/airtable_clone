@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { useColumns } from "./useColumns";
 import { useRows } from "./useRows";
-import type { TableColumn, TableRowValue, PageParams, TableColumnDataType, SavedFilter } from "~/schemas";
-import { api } from "~/trpc/react";
+import type { TableRowValue, PageParams, TableColumnDataType, SavedFilter } from "~/schemas";
 import { useSavedFilters } from "./useSavedFilters";
 
 export function useTableData(
@@ -34,7 +33,7 @@ export function useTableData(
     isLoading,
     refetch: refetchRows,
     addRows,
-    // updateRow,
+    updateRow,
     deleteRow,
   } = useRows(tableId, { ...pageParams, search });
 
@@ -71,16 +70,29 @@ export function useTableData(
     rowId: string,
     col: string,
     raw: string,
-    type: TableColumn["data_type"]
+    type: TableColumnDataType
   ) => {
     let v: TableRowValue = raw;
     if (type === "numeric") v = Number(raw) || 0;
     if (type === "boolean") v = raw === "true";
     if (type === "date") v = raw;
+    // setUpdatingCell({ rowId, col });
 
-    await updateRow({ tableId, rowId, data: { [col]: v } });
-    setEditing(undefined);
-    await Promise.all([refetchColumns(), refetchRows()]);
+    // await updateRow({ tableId, rowId, data: { [col]: v } });
+    // setEditing(undefined);
+    // setUpdatingCell(undefined);
+    // await Promise.all([refetchColumns(), refetchRows()]);
+    await updateRow({
+      tableId,
+      rowId,
+      data: { [col]: v }
+    }, {
+      onSuccess: () => {
+        setEditingCell(undefined);
+        setUpdatingCell(undefined);
+        void refetchRows();
+      }
+    });
   };
 
   const onDeleteRow = async (rowId: string) => {

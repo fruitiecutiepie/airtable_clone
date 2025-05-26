@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useTableUI } from "~/app/hooks/useTableUI";
-import TableView from "~/app/table/[tableId]/page";
+import TableView from "~/app/table/[tableId]/TableView";
 import { Button } from "~/app/components/ui/button";
 
 interface TablePageProps {

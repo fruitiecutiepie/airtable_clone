@@ -37,7 +37,7 @@ export default function InfiniteList() {
         ?
         <ul>
           {data.pages[0]?.rows.map(page =>
-            <li key={page.id}>{JSON.stringify(page)}</li>
+            <li key={page.rowId}>{JSON.stringify(page)}</li>
           )}
         </ul>
         : <p>Loading data…</p>
