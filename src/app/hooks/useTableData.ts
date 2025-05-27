@@ -13,7 +13,8 @@ export function useTableData(
 ) {
   const [pageParams, setPageParams] = useState<PageParams>({ pageSize: 1000 });
   const [search, setSearch] = useState("");
-  const [editing, setEditing] = useState<{ rowId: string; col: string } | undefined>(undefined);
+  const [editingCell, setEditingCell] = useState<{ rowId: string; col: string } | undefined>(undefined);
+  const [updatingCell, setUpdatingCell] = useState<{ rowId: string; col: string }>()
 
   const {
     columns,
@@ -45,6 +46,23 @@ export function useTableData(
     deleteFilter,
   } = useSavedFilters(userId, baseId, tableId);
 
+  // const updateRow = api.table.updRow.useMutation({
+  //   // before the mutation is sent
+  //   onMutate: ({ rowId, data }) => {
+  //     // assume single‐key data object => the column being updated
+  //     const col = Object.keys(data)[0];
+  //     if (!col) return;
+  //     setEditingCell(undefined);
+  //     setUpdatingCell({ rowId, col });
+  //   },
+  //   // after success or failure
+  //   onSettled: async () => {
+  //     setEditingCell(undefined);
+  //     setUpdatingCell(undefined);
+  //     // refetch everything
+  //     await Promise.all([refetchColumns(), refetchRows()]);
+  //   },
+  // });
 
   const hasMore = !!nextCursor;
   const loadMore = () => {
@@ -52,10 +70,10 @@ export function useTableData(
     setPageParams((p) => ({ ...p, lastId: nextCursor }));
   };
 
-  useEffect(() => {
-    setPageParams((p) => ({ ...p, cursor: undefined }));
-    void refetchRows();
-  }, [search, refetchRows]);
+  // useEffect(() => {
+  //   setPageParams((p) => ({ ...p, cursor: undefined }));
+  //   void refetchRows();
+  // }, [search, refetchRows]);
 
   const onApplySavedFilter = (filter: SavedFilter) => {
     setPageParams((p) => ({
@@ -72,6 +90,7 @@ export function useTableData(
     raw: string,
     type: TableColumnDataType
   ) => {
+    console.log("Saving cell", { rowId, col, raw, type });
     let v: TableRowValue = raw;
     if (type === "numeric") v = Number(raw) || 0;
     if (type === "boolean") v = raw === "true";
@@ -168,8 +187,9 @@ export function useTableData(
     loadMore,
     pageParams,
     setPageParams,
-    editing,
-    setEditing,
+    updatingCell,
+    editingCell,
+    setEditingCell,
     onSaveCell,
     onDeleteRow,
     onInsertRow,
