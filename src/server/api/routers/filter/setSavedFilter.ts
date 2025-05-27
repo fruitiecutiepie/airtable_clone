@@ -18,7 +18,7 @@ export const setSavedFilter = publicProcedure
     updatedAt: z.string().datetime(),
   }))
   .output(SavedFilterSchema)
-  .mutation(async ({ ctx, input }) => {
+  .mutation(async ({ input }) => {
     const client = await pool.connect();
     try {
       const result = await client.query<{

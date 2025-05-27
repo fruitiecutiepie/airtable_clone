@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useReactTable, getCoreRowModel, flexRender, type ColumnDef, type CellContext } from "@tanstack/react-table";
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useTableData } from "~/app/hooks/useTableData";
-import type { FilterOperation, TableColumn, TableRow, TableRowValue } from "~/schemas";
+import type { Filter, FilterOperation, TableColumn, TableRow, TableRowValue } from "~/schemas";
 import { Button } from "~/app/components/ui/button";
-import { DebouncedInput } from "~/components/DebouncedInput";
+import { useNumericColumnFilter } from "~/app/hooks/useNumericColumnFilter";
+import { NumericFilterCell } from "~/components/NumericFilterCell";
+import { TextFilterCell } from "~/components/TextFilterCell";
 
 interface TableViewProps {
   userId: string;
@@ -63,8 +65,6 @@ export default function TableView(props: TableViewProps) {
     estimateSize: () => 35,     // average row height
     overscan: 10,               // buffer rows above/below viewport
   });
-
-  const virtualItems = rowVirtualizer.getVirtualItems();
 
   // const firstThresholdCheck = useRef(true);
 
@@ -297,6 +297,37 @@ export default function TableView(props: TableViewProps) {
     getCoreRowModel: getCoreRowModel(),
   });
 
+  const parseNum = useCallback((raw: unknown): number | undefined => {
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+    if (raw === undefined || raw === undefined || String(raw).trim() === "") {
+      return undefined;
+    }
+    const num = Number(raw);
+    return isNaN(num) ? undefined : num;
+  }, []);
+
+  const [liveSearchInput, setLiveSearchInput] = useState<string>(search ?? "");
+
+  useEffect(() => {
+    if (search !== liveSearchInput) {
+      setLiveSearchInput(search ?? "");
+    }
+  }, [search]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (liveSearchInput !== search) { // Only update if different from current debounced search
+        setPageParams(p => ({ ...p, cursor: undefined, search: liveSearchInput }));
+        setSearch(liveSearchInput);
+        void refetchRows();
+      }
+    }, 300); // 300ms delay
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [liveSearchInput, search, setPageParams, refetchRows]);
+
   return (
     <div>
       <div className="mb-4 flex gap-2 w-full">
@@ -315,14 +346,10 @@ export default function TableView(props: TableViewProps) {
           >
             + Blank Row
           </Button>
-          <DebouncedInput
-            delay={300}
-            value={search}
-            onDebouncedChange={v => {
-              if (v === search) return;
-              setPageParams(p => ({ ...p, cursor: undefined, search: v }));
-              void refetchRows();
-            }}
+          <input
+            type="text"
+            value={liveSearchInput}
+            onChange={e => setLiveSearchInput(e.target.value)}
             className="border border-blue-700 text-gray-700 px-3 py-1.5 h-full rounded-md w-full outline-none focus:outline-none ring-0"
             placeholder="Search by any column…"
           />
@@ -476,83 +503,22 @@ export default function TableView(props: TableViewProps) {
               <th className="flex-none w-16 p-2"></th>
               {columns.map((col: TableColumn) => {
                 const f = pageParams.filters?.[col.name] ?? { op: "in", value: "" };
+
                 return (
                   <th key={col.name} className="flex-1 flex flex-row gap-2 w-full">
-                    {col.dataType === "numeric" ?
-                      <>
-                        <DebouncedInput<number>
-                          key={col.name}
-                          value={Number(f.value ?? "")}
-                          delay={300}
-                          onDebouncedChange={v =>
-                            setPageParams(p => ({
-                              ...p,
-                              filters: {
-                                ...(p.filters ?? {}),
-                                [col.name]: { op: "gt", value: v }
-                              }
-                            }))
-                          }
-                          type="number"
-                          placeholder="> value"
-                          className="border w-full border-gray-700 text-gray-700 rounded px-2 py-1 outline-none focus:outline-none ring-0"
-                        />
-                        <DebouncedInput<number>
-                          key={col.name}
-                          value={Number(f.value ?? "")}
-                          delay={300}
-                          onDebouncedChange={v =>
-                            setPageParams(p => ({
-                              ...p,
-                              filters: {
-                                ...(p.filters ?? {}),
-                                [col.name]: { op: "lt", value: v }
-                              }
-                            }))
-                          }
-                          type="number"
-                          placeholder="< value"
-                          className="border w-full border-gray-700 text-gray-700 rounded px-2 py-1 outline-none focus:outline-none ring-0"
-                        />
-                      </>
-                      : <div className="flex gap-1 w-full">
-                        <select
-                          value={f.op}
-                          className="border border-gray-700 text-gray-700 rounded px-2 py-1 outline-none focus:outline-none ring-0"
-                          onChange={e =>
-                            setPageParams(p => ({
-                              ...p,
-                              filters: {
-                                ...(p.filters ?? {}),
-                                [col.name]: { op: e.target.value as FilterOperation, value: f.value }
-                              }
-                            }))}>
-                          <option value="in">Contains</option>
-                          <option value="nin">Not contains</option>
-                          <option value="eq">Equal</option>
-                          <option value="neq">Not equal</option>
-                          <option value="isnull">Empty</option>
-                          <option value="isnotnull">Not empty</option>
-                        </select>
-                        {!["isnull", "isnotnull"].includes(f.op) &&
-                          <DebouncedInput
-                            key={col.name}
-                            value={String(f.value ?? "")}
-                            delay={300}
-                            onDebouncedChange={v =>
-                              setPageParams(p => ({
-                                ...p,
-                                filters: {
-                                  ...(p.filters ?? {}),
-                                  [col.name]: { op: f.op, value: v }
-                                }
-                              }))
-                            }
-                            className="w-full border border-gray-700 text-gray-700 rounded px-2 py-1 outline-none focus:outline-none ring-0"
-                            placeholder="Filter…"
-                          />
-                        }
-                      </div>
+                    {col.dataType === "numeric"
+                      ? <NumericFilterCell
+                        colName={col.name}
+                        pageParams={pageParams}
+                        setPageParams={setPageParams}
+                        refetchRows={refetchRows}
+                      />
+                      : <TextFilterCell
+                        colName={col.name}
+                        pageParams={pageParams}
+                        setPageParams={setPageParams}
+                        refetchRows={refetchRows}
+                      />
                     }
                   </th>
                 );
