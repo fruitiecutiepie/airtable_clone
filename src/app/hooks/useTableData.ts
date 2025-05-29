@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useColumns } from "./useColumns";
 import { useRows } from "./useRows";
-import type { TableRowValue, PageParams, TableColumnDataType, SavedFilter } from "~/schemas";
+import type { TableRowValue, PageParams, TableColumnDataType, SavedFilter } from "~/lib/schemas";
 import { useSavedFilters } from "./useSavedFilters";
 
 export function useTableData(

@@ -4,11 +4,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useReactTable, getCoreRowModel, flexRender, type ColumnDef, type CellContext } from "@tanstack/react-table";
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useTableData } from "~/app/hooks/useTableData";
-import type { Filter, FilterOperation, TableColumn, TableRow, TableRowValue } from "~/schemas";
+import type { Filter, FilterOperation, TableColumn, TableRow, TableRowValue } from "~/lib/schemas";
 import { Button } from "~/app/components/ui/button";
 import { useNumericColumnFilter } from "~/app/hooks/useNumericColumnFilter";
-import { NumericFilterCell } from "~/components/NumericFilterCell";
-import { TextFilterCell } from "~/components/TextFilterCell";
+import { NumericFilterCell } from "~/app/components/NumericFilterCell";
+import { TextFilterCell } from "~/app/components/TextFilterCell";
 
 interface TableViewProps {
   userId: string;
@@ -312,7 +312,7 @@ export default function TableView(props: TableViewProps) {
     if (search !== liveSearchInput) {
       setLiveSearchInput(search ?? "");
     }
-  }, [search]);
+  }, [liveSearchInput, search]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -326,7 +326,7 @@ export default function TableView(props: TableViewProps) {
     return () => {
       clearTimeout(handler);
     };
-  }, [liveSearchInput, search, setPageParams, refetchRows]);
+  }, [liveSearchInput, search, setPageParams, refetchRows, setSearch]);
 
   return (
     <div>

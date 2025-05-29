@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { pool } from "~/app/db/db";
+import { pool } from "~/server/db/db";
 import { publicProcedure } from "../../trpc";
-import { TableColumnSchema } from "~/schemas";
+import { TableColumnSchema } from "~/lib/schemas";
 import { TRPCError } from "@trpc/server";
 
 export const addColumn = publicProcedure

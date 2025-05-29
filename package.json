@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "gen:fakeRows": "npx tsx src/app/scripts/generateFakeRows.ts",
+    "gen:fakeRows": "npx tsx src/scripts/generateFakeRows.ts",
     "predev": "pnpm run gen:fakeRows",
     "prebuild": "pnpm run gen:fakeRows",
     "build": "next build",

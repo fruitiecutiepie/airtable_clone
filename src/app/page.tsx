@@ -1,7 +1,7 @@
 "use client"
 import { useSession, signIn, signOut } from "next-auth/react"
 import { Button } from "./components/ui/button";
-import BaseList from "~/components/BaseList";
+import BaseList from "~/app/components/BaseList";
 
 export default function Page() {
   const { data: session, status } = useSession();

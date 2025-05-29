@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useTextColumnFilter } from "~/app/hooks/useTextColumnFilter";
-import type { PageParams, FilterOperation } from "~/schemas";
+import type { PageParams, FilterOperation } from "~/lib/schemas";
 
 export function TextFilterCell({
   colName,

@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "~/trpc/react";
-import type { Table } from "~/schemas";
+import type { Table } from "~/lib/schemas";
 
 export function useTables(
   baseId: number

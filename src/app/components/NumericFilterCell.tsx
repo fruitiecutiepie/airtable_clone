@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useNumericColumnFilter } from "~/app/hooks/useNumericColumnFilter";
-import type { PageParams } from "~/schemas";
+import type { PageParams } from "~/lib/schemas";
 
 export function NumericFilterCell({
   colName,

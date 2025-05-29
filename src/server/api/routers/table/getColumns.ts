@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { pool } from "~/app/db/db";
-import type { TableColumn } from "~/schemas";
+import { pool } from "~/server/db/db";
+import type { TableColumn } from "~/lib/schemas";
 import { publicProcedure } from "../../trpc";
 
 export const getColumns = publicProcedure

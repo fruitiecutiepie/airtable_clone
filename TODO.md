@@ -1,0 +1,22 @@
+# functional requirements
+
+- [X] sign up/log in page
+  - [X] google sign in
+- [X] create base
+- [X] create table
+- [X] crud column
+  - [X] type text
+  - [X] type number
+- [X] prepopulate new table
+- [X] add mock 100k rows
+  - [X] attach add mock data to a button
+- [X] virtual infinite scroll
+- [X] search across all cells
+- [X] save table view
+  - [X] filter by column
+    - [X] number: greater than, less than
+    - [X] text: is not empty, is empty, contains, not contains, equals to
+  - [X] sort by column
+    - [X] number: asc, desc
+    - [X] text: asc, desc
+- [X] loading state

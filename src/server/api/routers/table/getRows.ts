@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pool } from "~/app/db/db";
+import { pool } from "~/server/db/db";
 import {
   CursorSchema,
   FilterSchema,
@@ -7,7 +7,7 @@ import {
   type TableRow,
   type TableColumnDataType,
   type TableRowValue,
-} from "~/schemas";
+} from "~/lib/schemas";
 import { publicProcedure } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 

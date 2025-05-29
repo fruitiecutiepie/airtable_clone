@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { pool } from "~/app/db/db";
-import { TableRowValueSchema } from "~/schemas";
+import { pool } from "~/server/db/db";
+import { TableRowValueSchema } from "~/lib/schemas";
 import { publicProcedure } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 

@@ -18,6 +18,10 @@ export default tseslint.config(
       ...tseslint.configs.stylisticTypeChecked,
     ],
     rules: {
+      // enforce exhaustive deps for hooks
+      "react-hooks/exhaustive-deps": "error",
+      // allow server components without React import
+      "react/react-in-jsx-scope": "off",
       "@typescript-eslint/array-type": "off",
       "@typescript-eslint/consistent-type-definitions": "off",
       "@typescript-eslint/consistent-type-imports": [

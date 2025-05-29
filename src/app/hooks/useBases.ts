@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import type { Base } from '~/schemas'
+import type { Base } from '~/lib/schemas'
 import { api } from '~/trpc/react'
 
 export function useBases(

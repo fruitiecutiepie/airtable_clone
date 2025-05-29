@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useBases } from '~/app/hooks/useBases'
 import TablePage from '~/app/table/TablePage'
-import type { Base } from '~/schemas'
+import type { Base } from '~/lib/schemas'
 
 interface BaseListProps {
   userId: string

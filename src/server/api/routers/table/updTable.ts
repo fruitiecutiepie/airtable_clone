@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pool } from "~/app/db/db";
+import { pool } from "~/server/db/db";
 import { publicProcedure } from "../../trpc";
 
 export const updTable = publicProcedure

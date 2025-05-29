@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { pool } from "~/app/db/db";
+import { pool } from "~/server/db/db";
 import { publicProcedure } from "../../trpc";
-import { BaseSchema } from "~/schemas";
+import { BaseSchema } from "~/lib/schemas";
 import { TRPCError } from "@trpc/server";
 
 export const getBases = publicProcedure

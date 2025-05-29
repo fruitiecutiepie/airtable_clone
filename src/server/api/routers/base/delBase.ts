@@ -1,4 +1,4 @@
-import { pool } from "~/app/db/db";
+import { pool } from "~/server/db/db";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { publicProcedure } from "../../trpc";

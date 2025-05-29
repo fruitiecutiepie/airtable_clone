@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { publicProcedure } from "../../trpc";
-import { pool } from "~/app/db/db";
+import { pool } from "~/server/db/db";
 
 export const delSavedFilter = publicProcedure
   .input(z.object({

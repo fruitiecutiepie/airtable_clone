@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { SavedFilterSchema, type Filter } from "~/schemas";
+import { SavedFilterSchema, type Filter } from "~/lib/schemas";
 import { publicProcedure } from "../../trpc";
-import { pool } from "~/app/db/db";
+import { pool } from "~/server/db/db";
 import { TRPCError } from "@trpc/server";
 
 export const getSavedFilters = publicProcedure

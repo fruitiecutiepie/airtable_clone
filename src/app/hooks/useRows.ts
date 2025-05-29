@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "~/trpc/react";
-import type { PageParams } from "~/schemas";
+import type { PageParams } from "~/lib/schemas";
 import { useInfiniteRows } from "./useInfiniteRows";
 
 export function useRows(

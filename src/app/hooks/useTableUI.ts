@@ -3,8 +3,8 @@
 import { useState, useCallback } from "react";
 import { useTables } from "./useTables";
 import { api } from "~/trpc/react";
-import { fakeRows } from "~/app/data/fakeRows";
-import type { TableColumnDataType, Table } from "~/schemas";
+import { fakeRows } from "~/data/fakeRows";
+import type { TableColumnDataType, Table } from "~/lib/schemas";
 
 export function useTableUI(
   baseId: number

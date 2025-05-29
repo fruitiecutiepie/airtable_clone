@@ -1,5 +1,5 @@
 import { useState, useEffect, type Dispatch, type SetStateAction } from "react";
-import type { PageParams } from "~/schemas";
+import type { PageParams } from "~/lib/schemas";
 
 export function useNumericColumnFilter(
   colName: string,
@@ -23,7 +23,7 @@ export function useNumericColumnFilter(
 
     if (newGt !== gtInput) setGtInput(newGt);
     if (newLt !== ltInput) setLtInput(newLt);
-  }, [pageParams.filters, colName]);
+  }, [pageParams.filters, colName, gtInput, ltInput]);
 
   // 2) Debounced‐commit for “>” input
   useEffect(() => {

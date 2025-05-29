@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { pool } from "~/app/db/db";
-import { FilterOperationSchema, SavedFilterSchema, TableRowValueSchema, } from "~/schemas";
+import { pool } from "~/server/db/db";
+import { FilterOperationSchema, SavedFilterSchema, TableRowValueSchema, } from "~/lib/schemas";
 import { publicProcedure } from "../../trpc";
 
 export const setSavedFilter = publicProcedure

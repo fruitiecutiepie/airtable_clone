@@ -1,5 +1,5 @@
 import { type Dispatch, type SetStateAction, useState, useEffect } from "react";
-import type { PageParams, FilterOperation } from "~/schemas";
+import type { PageParams, FilterOperation } from "~/lib/schemas";
 
 export function useTextColumnFilter(
   colName: string,
@@ -21,7 +21,7 @@ export function useTextColumnFilter(
     const newText = f.value != null ? String(f.value) : "";
     if (newOp !== op) setOp(newOp);
     if (newText !== text) setText(newText);
-  }, [pageParams.filters, colName]);
+  }, [pageParams.filters, colName, op, text]);
 
   // commit op immediately
   useEffect(() => {
@@ -41,7 +41,7 @@ export function useTextColumnFilter(
       }
     }));
     void refetchRows();
-  }, [op]);
+  }, [colName, op, refetchRows, setPageParams, text]);
 
   // debounce text commits
   useEffect(() => {
@@ -62,7 +62,7 @@ export function useTextColumnFilter(
       }
     }, 300);
     return () => clearTimeout(h);
-  }, [text]);
+  }, [colName, op, pageParams.filters, refetchRows, setPageParams, text]);
 
   return { op, setOp, text, setText };
 }
