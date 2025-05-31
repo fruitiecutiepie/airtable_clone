@@ -44,12 +44,15 @@ export const authConfig = {
   session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user }) {
-      if (user?.public_id) token.public_id = user.public_id;
+      if (!user) return token;
+      token.public_id = user.public_id;
+      token.picture = user.image;
       return token
     },
     async session({ session, token }) {
       session.user.public_id = token.public_id;
       session.user.id = token.public_id;
+      session.user.image = token.picture;
       return session
     }
   },
