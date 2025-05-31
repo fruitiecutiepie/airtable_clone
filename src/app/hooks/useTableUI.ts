@@ -11,7 +11,6 @@ export function useTableUI(
 ) {
   const {
     tables,
-    refetch,
     addTable,
     updateTable,
     deleteTable,
@@ -20,45 +19,7 @@ export function useTableUI(
   const addColumn = api.table.addColumn.useMutation();
   const addRows = api.table.addRows.useMutation();
 
-  const [selectedTable, setSelectedTable] = useState<Table | undefined>(undefined);
-
-  const addNewTable = useCallback(async () => {
-    const name = prompt("Table name?");
-    if (!name) return;
-    const now = new Date().toISOString();
-
-    const table = await addTable({ baseId, name, createdAt: now, updatedAt: now });
-
-    const defs = [
-      { name: "firstName", dataType: "text" as TableColumnDataType },
-      { name: "age", dataType: "numeric" as TableColumnDataType },
-      { name: "email", dataType: "text" as TableColumnDataType },
-    ] as const;
-
-    for (let i = 0; i < defs.length; i++) {
-      await addColumn.mutateAsync({
-        tableId: table.id,
-        name: defs[i]!.name,
-        dataType: defs[i]!.dataType,
-        position: i,
-      });
-    }
-
-    const rows = fakeRows.slice(0, 100).map(row => ({
-      firstName: row.firstName,
-      age: row.age,
-      email: row.email
-    }));
-
-    await addRows.mutateAsync({
-      tableId: table.id,
-      createdAt: now,
-      rows
-    });
-
-    await refetch();
-    setSelectedTable(table);
-  }, [baseId, addTable, addColumn, addRows, refetch]);
+  const [selectedTable, setSelectedTable] = useState<Table | undefined>(tables[0] ?? undefined);
 
   const addRowsHundredThousand = useCallback(async (tableId: number) => {
     const TOTAL = fakeRows.length;
@@ -74,29 +35,24 @@ export function useTableUI(
         rows
       });
     }
-
-    await refetch();
-  }, [addRows, refetch]);
+  }, [addRows]);
 
   const renameTable = useCallback(async (tableId: number) => {
     const name = prompt("New table name?");
     if (!name) return;
     await updateTable({ baseId, tableId, name });
-    await refetch();
-  }, [baseId, updateTable, refetch]);
+  }, [baseId, updateTable]);
 
   const deleteCurrentTable = useCallback(async (tableId: number) => {
     if (!confirm("Delete this table?")) return;
     await deleteTable({ tableId });
-    await refetch();
     setSelectedTable(undefined);
-  }, [deleteTable, refetch]);
+  }, [deleteTable]);
 
   return {
     tables,
     selectedTable,
     setSelectedTable,
-    addNewTable,
     addRowsHundredThousand,
     renameTable,
     deleteCurrentTable,

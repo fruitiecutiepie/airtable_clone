@@ -43,7 +43,7 @@ export function useNumericColumnFilter(
       }
     }, 300);
     return () => clearTimeout(h);
-  }, [gtInput]);
+  }, [colName, gtInput, pageParams.filters, refetchRows, setPageParams]);
 
   // 3) Debounced‐commit for “<” input
   useEffect(() => {
@@ -63,7 +63,7 @@ export function useNumericColumnFilter(
       }
     }, 300);
     return () => clearTimeout(h);
-  }, [ltInput]);
+  }, [colName, ltInput, pageParams.filters, refetchRows, setPageParams]);
 
   return { gtInput, setGtInput, ltInput, setLtInput };
 }
