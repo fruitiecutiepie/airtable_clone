@@ -2,6 +2,7 @@ import { z } from "zod";
 import { pool } from "~/server/db/db";
 import { publicProcedure } from "../../trpc";
 import { TRPCError } from "@trpc/server";
+import { TableSchema } from "~/lib/schemas";
 
 export const getTables = publicProcedure
   .input(
@@ -10,15 +11,7 @@ export const getTables = publicProcedure
     })
   )
   .output(
-    z.array(
-      z.object({
-        id: z.number(),
-        name: z.string(),
-        createdAt: z.string(),
-        updatedAt: z.string(),
-        rowCount: z.number(),
-      })
-    )
+    z.array(TableSchema)
   )
   .query(async ({ input }) => {
     const client = await pool.connect();
@@ -54,8 +47,7 @@ export const getTables = publicProcedure
             id: r.table_id,
             name: r.name,
             createdAt: r.created_at.toISOString(),
-            updatedAt: r.updated_at.toISOString(),
-            rowCount: Number(countRes.rows[0]?.count ?? 0),
+            updatedAt: r.updated_at.toISOString()
           };
         })
       );
