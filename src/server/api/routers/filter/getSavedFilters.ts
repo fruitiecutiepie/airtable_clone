@@ -6,12 +6,11 @@ import { TRPCError } from "@trpc/server";
 
 export const getSavedFilters = publicProcedure
   .input(z.object({
-    userId: z.string(),
     baseId: z.number(),
     tableId: z.number()
   }))
   .output(z.array(SavedFilterSchema))
-  .query(async ({ ctx, input }) => {
+  .query(async ({ input }) => {
     const client = await pool.connect();
     try {
       const res = await client.query<{
@@ -23,11 +22,10 @@ export const getSavedFilters = publicProcedure
       }>(`
         SELECT filter_id, name, filters, created_at, updated_at
           FROM saved_filters
-        WHERE user_id  = $1
-          AND base_id  = $2::int
-          AND table_id = $3::int
+        WHERE base_id  = $1::int
+          AND table_id = $2::int
         ORDER BY created_at
-      `, [input.userId, input.baseId, input.tableId]);
+      `, [input.baseId, input.tableId]);
 
       return res.rows.map(r => ({
         filter_id: r.filter_id,

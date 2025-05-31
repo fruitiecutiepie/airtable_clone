@@ -6,7 +6,6 @@ import { publicProcedure } from "../../trpc";
 
 export const setSavedFilter = publicProcedure
   .input(z.object({
-    userId: z.string(),
     baseId: z.number(),
     tableId: z.number(),
     name: z.string(),
@@ -25,7 +24,6 @@ export const setSavedFilter = publicProcedure
         filter_id: number
       }>(`
         INSERT INTO saved_filters(
-          user_id, 
           base_id, 
           table_id, 
           name, 
@@ -34,20 +32,18 @@ export const setSavedFilter = publicProcedure
           updated_at
         )
         VALUES(
-          $1, 
+          $1::int, 
           $2::int, 
-          $3::int, 
-          $4, 
-          $5::jsonb, 
-          $6::timestamptz, 
-          $7::timestamptz
+          $3, 
+          $4::jsonb, 
+          $5::timestamptz, 
+          $6::timestamptz
         )
-        ON CONFLICT (user_id, table_id, name)
+        ON CONFLICT (table_id, name)
         DO UPDATE
           SET filters    = EXCLUDED.filters
         RETURNING filter_id
         `, [
-        input.userId,
         input.baseId,
         input.tableId,
         input.name,

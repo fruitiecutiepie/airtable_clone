@@ -4,10 +4,9 @@ import { pool } from "~/server/db/db";
 
 export const delSavedFilter = publicProcedure
   .input(z.object({
-    userId: z.string(),
     filterId: z.number(),
   }))
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async ({ input }) => {
     const client = await pool.connect();
 
     try {
@@ -15,9 +14,8 @@ export const delSavedFilter = publicProcedure
         `
         DELETE FROM saved_filters
         WHERE filter_id = $1
-          AND user_id = $2
         `,
-        [input.filterId, input.userId]
+        [input.filterId]
       );
       return result.rowCount && result.rowCount > 0;
     } catch (err: unknown) {

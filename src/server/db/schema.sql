@@ -108,16 +108,15 @@ CREATE INDEX ON app_rows USING GIN (search_vector);
 
 CREATE TABLE IF NOT EXISTS saved_filters (
   filter_id   SERIAL       PRIMARY KEY,
-  user_id     TEXT         NOT NULL REFERENCES users(public_id) ON DELETE CASCADE,
   base_id     INT          NOT NULL REFERENCES app_bases(base_id) ON DELETE CASCADE,
   table_id    INT          NOT NULL REFERENCES app_tables(table_id) ON DELETE CASCADE,
   name        TEXT         NOT NULL,
   filters     JSONB        NOT NULL,
   created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  CONSTRAINT uq_user_table_filter UNIQUE (user_id, table_id, name)
+  CONSTRAINT uq_user_table_filter UNIQUE (table_id, name)
 );
-CREATE INDEX ON saved_filters(user_id, table_id);
+CREATE INDEX ON saved_filters(base_id, table_id);
 
 -- RLS
 
@@ -208,8 +207,22 @@ ALTER TABLE saved_filters ENABLE ROW LEVEL SECURITY;
 CREATE POLICY saved_filters_owner_only
   ON saved_filters
   FOR ALL
-  USING ( user_id = current_setting('app.current_user') )
-  WITH CHECK ( user_id = current_setting('app.current_user') );
+  USING (
+    EXISTS (
+      SELECT 1
+        FROM app_bases b
+       WHERE b.base_id = saved_filters.base_id
+         AND b.user_id = current_setting('app.current_user')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+        FROM app_bases b
+       WHERE b.base_id = saved_filters.base_id
+         AND b.user_id = current_setting('app.current_user')
+    )
+  );
 
 -- Triggers
 
