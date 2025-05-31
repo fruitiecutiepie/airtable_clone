@@ -5,18 +5,38 @@ import { useReactTable, getCoreRowModel, flexRender, type ColumnDef, type CellCo
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useTableData } from "~/app/hooks/useTableData";
 import type { Filter, FilterOperation, TableColumn, TableRow, TableRowValue } from "~/lib/schemas";
-import { Button } from "~/app/components/ui/button";
+import { Button } from "~/app/components/ui/Button";
 import { useNumericColumnFilter } from "~/app/hooks/useNumericColumnFilter";
 import { NumericFilterCell } from "~/app/components/NumericFilterCell";
 import { TextFilterCell } from "~/app/components/TextFilterCell";
+import { useSession } from "next-auth/react";
 
 interface TableViewProps {
-  userId: string;
   baseId: number;
   tableId: number;
 }
 
-export default function TableView(props: TableViewProps) {
+export default function TableView({
+  baseId,
+  tableId,
+}: TableViewProps) {
+  const { data: session } = useSession();
+  if (!session) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
+        <p>Please sign in to view this table.</p>
+        <Button
+          onClick={() => window.location.href = "/api/auth/signin"}
+          className="bg-blue-500 text-white hover:bg-blue-600"
+          variant={"outline"}
+          size={"lg"}
+        >
+          Sign in with Google
+        </Button>
+      </div>
+    );
+  }
+
   const {
     columns,
     rows,
@@ -48,7 +68,7 @@ export default function TableView(props: TableViewProps) {
     refetchSavedFilters,
     setSavedFilter,
     deleteFilter,
-  } = useTableData(props.tableId, props.baseId, props.userId);
+  } = useTableData(tableId, baseId, session.user.public_id);
 
   // onMount
   useEffect(() => {
@@ -137,7 +157,7 @@ export default function TableView(props: TableViewProps) {
     });
     await addRows(
       {
-        tableId: props.tableId,
+        tableId: tableId,
         createdAt: new Date().toISOString(),
         rows: [data]
       },
@@ -329,7 +349,37 @@ export default function TableView(props: TableViewProps) {
   }, [liveSearchInput, search, setPageParams, refetchRows, setSearch]);
 
   return (
-    <div>
+    <div
+      className="flex flex-col w-full h-full p-4 bg-background"
+    >
+      {/* <div className="flex-1 p-4 h-full">
+        <div className="flex gap-2 mb-4 border-b items-center">
+          <div
+            className="flex gap-2 items-center justify-between w-full"
+          >
+            <div>
+              <Button
+                onClick={() => addRowsHundredThousand(tableId)}
+                className="hover:text-blue-600"
+              >
+                Add 100k Rows
+              </Button>
+              <Button
+                onClick={() => renameTable(tableId)}
+                className="hover:text-blue-600"
+              >
+                Rename
+              </Button>
+              <Button
+                onClick={() => deleteCurrentTable(tableId)}
+                className="hover:text-red-600"
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div> */}
       <div className="mb-4 flex gap-2 w-full">
         <div
           className="flex-1 flex items-center justify-between gap-2 w-full"
@@ -396,9 +446,9 @@ export default function TableView(props: TableViewProps) {
               const name = prompt("Name this filter set");
               if (!name) return;
               await setSavedFilter({
-                userId: props.userId,
-                baseId: props.baseId,
-                tableId: props.tableId,
+                userId: session.user.public_id,
+                baseId: baseId,
+                tableId: tableId,
                 name,
                 filters: pageParams.filters ?? {},
                 createdAt: new Date().toISOString(),
