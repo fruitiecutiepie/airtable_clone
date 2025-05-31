@@ -1,32 +1,32 @@
 @import "tailwindcss";
 
-:root {
+@theme {
   /* font */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
   /* primary button */
-  --primary:            #2563eb;
-  --primary-foreground: #ffffff;
+  --color-primary:            #2563eb;
+  --color-primary-foreground: #ffffff;
 
   /* secondary button */
-  --secondary:            #1e40af;
-  --secondary-foreground: #f3f4f6;
+  --color-secondary:            #1e40af;
+  --color-secondary-foreground: #f3f4f6;
 
   /* destructive button */
-  --destructive:            #dc2626;
-  --destructive-foreground: #ffffff;
+  --color-destructive:            #dc2626;
+  --color-destructive-foreground: #ffffff;
 
   /* ghost/link/outline accents */
-  --accent:            #facc15;
-  --accent-foreground: #111827;
+  --color-accent:            #facc15;
+  --color-accent-foreground: #111827;
 
   /* general page colors */
-  --background:         #f9fafb;
-  --foreground:         #111827;
-  --muted:              #6b7280;
-  --muted-foreground:   #374151;
-  --border:             #e5e7eb;
+  --color-background:         #f9fafb;
+  --color-foreground:         #111827;
+  --color-muted:              #6b7280;
+  --color-muted-foreground:   #374151;
+  --color-border:             #e5e7eb;
 
   /* form inputs */
   --input:              #ffffff;
@@ -36,25 +36,25 @@
 
 [data-theme="dark"] {
   /* swap to dark palette */
-  --primary:            #1d4ed8;
-  --primary-foreground: #f9fafb;
+  --color-primary:            #1d4ed8;
+  --color-primary-foreground: #f9fafb;
 
-  --secondary:            #2563eb;
-  --secondary-foreground: #e5e7eb;
+  --color-secondary:            #2563eb;
+  --color-secondary-foreground: #e5e7eb;
 
-  --destructive:            #b91c1c;
-  --destructive-foreground: #fef2f2;
+  --color-destructive:            #b91c1c;
+  --color-destructive-foreground: #fef2f2;
 
-  --accent:            #fbbf24;
-  --accent-foreground: #1f2937;
+  --color-accent:            #fbbf24;
+  --color-accent-foreground: #1f2937;
 
-  --background:         #111827;
-  --foreground:         #f9fafb;
-  --muted:              #9ca3af;
-  --muted-foreground:   #d1d5db;
-  --border:             #374151;
+  --color-background:         #111827;
+  --color-foreground:         #f9fafb;
+  --color-muted:              #9ca3af;
+  --color-muted-foreground:   #d1d5db;
+  --color-border:             #374151;
 
-  --input:              #1f2937;
-  --ring:               #3b82f6;
-  --ring-offset-background: var(--background);
+  --color-input:              #1f2937;
+  --color-ring:               #3b82f6;
+  --color-ring-offset-background: var(--background);
 }

@@ -26,6 +26,5 @@ module.exports = {
       },
     },
   },
-  // no plugins needed if you just want the default Tailwind theme:
   plugins: [],
 };
