@@ -1,15 +1,13 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React from "react";
 import { useTableUI } from "~/app/hooks/useTableUI";
-import TableView from "~/app/[baseId]/[tableId]/TableView";
 import { Button } from "~/app/components/ui/Button";
 import { redirect } from "next/navigation";
 import { PlusIcon } from "@radix-ui/react-icons";
-import TableHeader from "../components/TableHeader";
-import type { addBase } from "~/server/api/routers/base/addBase";
-import { api } from '~/trpc/react'
-import { useTables } from "../hooks/useTables";
+import TablePageHeader from "./TablePageHeader";
+import { useTables } from "../../hooks/useTables";
+import TableHeader from "./TableHeader";
 
 interface TablePageProps {
   userId: string
@@ -34,7 +32,7 @@ export default function TablePage({
 
   return (
     <div className="flex flex-col w-full h-full bg-purple-700">
-      <TableHeader />
+      <TablePageHeader />
       <div
         className="flex flex-row h-full justify-start items-center px-2 gap-2 bg-purple-800"
       >
@@ -56,7 +54,10 @@ export default function TablePage({
           onClick={addNewTable}
         />
       </div>
-      <TableView baseId={baseId} tableId={tableId} />
+      <TableHeader
+        col={{ name: "Column Name", columnId: 1, dataType: "text", position: 0 }} // Replace with actual column data
+      />
+      {/* <TableView baseId={baseId} tableId={tableId} /> */}
     </div>
   );
 }

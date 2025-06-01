@@ -1,6 +1,6 @@
 "use client"
 import { signIn, useSession } from "next-auth/react"
-import BaseList from "~/app/components/BaseList";
+import BaseList from "~/app/[baseId]/BaseList";
 import Header from "./components/Header";
 import { Button } from "./components/ui/Button";
 
