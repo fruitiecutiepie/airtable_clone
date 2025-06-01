@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import TablePage from "../../TablePage";
+import TablePage from "../TablePage";
 import { useSession } from "next-auth/react";
 
 export default function TableViewPage() {

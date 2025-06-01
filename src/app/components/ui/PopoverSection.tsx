@@ -2,20 +2,33 @@ import React from "react"
 import Link from "next/link"
 
 type PopoverItemLink = {
-  icon: React.ElementType<{ className?: string }>
+  icon?: React.ElementType<{ className?: string }>
   text: string
   href: string
   onClick?: never
+  separator?: never
+  textColorClass?: string
 }
 
 type PopoverItemButton = {
-  icon: React.ElementType<{ className?: string }>
+  icon?: React.ElementType<{ className?: string }>
   text: string
   onClick: () => void
   href?: never
+  separator?: never
+  textColorClass?: string
 }
 
-type PopoverItem = PopoverItemLink | PopoverItemButton
+type PopoverItemSeparator = {
+  icon?: never
+  text?: never
+  href?: never
+  onClick?: never
+  separator: true
+  textColorClass?: string
+}
+
+export type PopoverItem = PopoverItemLink | PopoverItemButton | PopoverItemSeparator
 
 export interface PopoverSectionProps {
   title: string | undefined
@@ -28,22 +41,26 @@ export const PopoverSection: React.FC<PopoverSectionProps> = ({ title, items }) 
       <p className="m-2 text-gray-400 text-[11px]">{title}</p>
     )}
     {items.map((item, i) => {
-      const Icon = item.icon
+      if (item.separator) {
+        return <hr key={i} className="m-2 border-gray-200" />
+      }
+
+      const Icon = item.icon;
+      const itemTextColor = item.textColorClass ?? 'inherit';
+
       return item.href ? (
-        <div
+        <Link
           key={i}
-          className="flex items-center justify-center p-2 cursor-pointer hover:bg-gray-100 gap-2 rounded"
+          href={item.href}
+          className="flex items-center p-2 cursor-pointer hover:bg-gray-100 gap-2 rounded"
         >
-          <Icon
-            className="inline-flex items-center justify-center h-4 w-4"
-          />
-          <Link
-            href={item.href}
-            className="h-full w-full"
-          >
-            {item.text}
-          </Link>
-        </div>
+          {Icon && (
+            <Icon
+              className="inline-flex items-center justify-center h-4 w-4"
+            />
+          )}
+          <span className={itemTextColor}>{item.text}</span>
+        </Link>
       ) : (
         <button
           key={i}
@@ -51,10 +68,12 @@ export const PopoverSection: React.FC<PopoverSectionProps> = ({ title, items }) 
           className="flex items-center p-2 cursor-pointer hover:bg-gray-100 gap-2 rounded"
           type="button"
         >
-          <Icon
-            className="inline-flex items-center justify-center h-4 w-4"
-          />
-          {item.text}
+          {Icon && (
+            <Icon
+              className="inline-flex items-center justify-center h-4 w-4"
+            />
+          )}
+          <span className={itemTextColor}>{item.text}</span>
         </button>
       )
     })}
