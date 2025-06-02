@@ -3,16 +3,30 @@ import { ContextMenu, Popover } from "radix-ui";
 import { AdjustmentsHorizontalIcon, BarsArrowDownIcon, BarsArrowUpIcon, EyeSlashIcon, HashtagIcon, TrashIcon } from "@heroicons/react/24/outline"
 import React, { useMemo } from 'react';
 import type { TableColumn } from '~/lib/schemas';
-import { CaretDownIcon, CheckboxIcon, LetterCaseCapitalizeIcon, Pencil1Icon, Pencil2Icon } from "@radix-ui/react-icons";
+import { CalendarIcon, CaretDownIcon, CheckboxIcon, LetterCaseCapitalizeIcon, Pencil1Icon, QuestionMarkIcon } from "@radix-ui/react-icons";
 import { PopoverSection, type PopoverItem, type PopoverSectionProps } from "~/app/components/ui/PopoverSection";
 import { redirect } from "next/navigation";
 
 interface TableHeaderProps {
   col: TableColumn;
+  sortDir: "asc" | "desc" | undefined;
+  onUpdateColumn: (columnId: number, newName: string) => Promise<void>;
+  onSortColumn: (column: TableColumn, direction: "asc" | "desc" | undefined) => void;
+  onToggleSortColumn: (column: TableColumn) => void;
+  onFilterColumn: (column: TableColumn) => void;
+  onHideColumn: (column: TableColumn) => void;
+  onDeleteColumn: (columnId: number) => Promise<void>;
 }
 
 export default function TableHeader({
-  col
+  col,
+  sortDir,
+  onUpdateColumn,
+  onSortColumn,
+  onToggleSortColumn,
+  onFilterColumn,
+  onHideColumn,
+  onDeleteColumn
 }: TableHeaderProps) {
   const headerSections: PopoverSectionProps[] = useMemo(() => [
     {
@@ -21,8 +35,11 @@ export default function TableHeader({
         {
           icon: Pencil1Icon,
           text: "Edit field",
-          onClick: () => {
-            // onUpdateColumn(col);
+          onClick: async () => {
+            const newName = prompt("Rename column", col.name);
+            if (newName && newName !== col.name) {
+              await onUpdateColumn(col.columnId, newName);
+            }
           }
         },
         {
@@ -32,14 +49,14 @@ export default function TableHeader({
           icon: BarsArrowDownIcon,
           text: "Sort A -> Z",
           onClick: () => {
-            // onSortColumn(col, "asc");
+            onSortColumn(col, "asc");
           }
         },
         {
           icon: BarsArrowUpIcon,
           text: "Sort Z -> A",
           onClick: () => {
-            // onSortColumn(col, "desc");
+            onSortColumn(col, "desc");
           }
         },
         {
@@ -48,7 +65,7 @@ export default function TableHeader({
         {
           icon: AdjustmentsHorizontalIcon,
           onClick: () => {
-            // onFilterColumn(col);
+            onFilterColumn(col);
           },
           text: "Filter by this field",
         },
@@ -59,62 +76,80 @@ export default function TableHeader({
           icon: EyeSlashIcon,
           text: "Hide field",
           onClick: () => {
-            // onHideColumn(col);
+            onHideColumn(col);
           }
         },
         {
           icon: TrashIcon,
           text: "Delete field",
           textColorClass: "text-red-700",
-          onClick: () => {
-            // onDeleteColumn(col);
+          onClick: async () => {
+            if (confirm("Delete this column?")) {
+              await onDeleteColumn(col.columnId);
+            }
           }
         }
       ]
     },
-  ];
+  ], [col, onDeleteColumn, onFilterColumn, onHideColumn, onSortColumn, onUpdateColumn]);
 
   return (
     <ContextMenu.Root>
-      <ContextMenu.Trigger>
+      <ContextMenu.Trigger
+        asChild
+      >
         <div
           className="
-            flex p-2 items-center gap-2 bg-stone-100 w-60 h-8 justify-between
-            hover:bg-stone-200 cursor-pointer border border-gray-300
-          ">
+            flex items-center bg-stone-100 w-full h-8 justify-between
+            hover:bg-stone-200 cursor-pointer
+          "
+        >
           <div
-            className="flex items-center justify-center gap-2 px-2 text-gray-700 max-w-5/6"
+            className="flex items-center justify-center gap-2 text-gray-700 
+              max-w-5/6 flex-grow min-w-0
+            "
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSortColumn(col);
+            }}
           >
             {col.dataType === "text" ? (
               <LetterCaseCapitalizeIcon className="w-4 h-4 text-gray-600 shrink-0" />
             ) : col.dataType === "numeric" ? (
               <HashtagIcon className="w-4 h-4 text-gray-600 shrink-0" />
             ) : col.dataType === "date" ? (
-              <BarsArrowUpIcon className="w-4 h-4 text-gray-600 shrink-0" />
+              <CalendarIcon className="w-4 h-4 text-gray-600 shrink-0" />
             ) : col.dataType === "boolean" ? (
               <CheckboxIcon className="w-4 h-4 text-gray-600 shrink-0" />
             ) : (
-              <TrashIcon className="w-4 h-4 text-gray-600 shrink-0" />
+              <QuestionMarkIcon className="w-4 h-4 text-gray-600 shrink-0" />
             )}
             <p className="truncate overflow-hidden text-sm">
               {col.name}
             </p>
+            {sortDir && (
+              {
+                "asc": <BarsArrowDownIcon className="w-4 h-4 text-gray-600 shrink-0" />,
+                "desc": <BarsArrowUpIcon className="w-4 h-4 text-gray-600 shrink-0" />
+              }[sortDir]
+            )}
           </div>
           <Popover.Root>
             <Popover.Trigger
               asChild
               className={`
-                 h-6 w-6 inline-flex items-center justify-center cursor-pointer
+                h-6 w-6 inline-flex items-center justify-center cursor-pointer
               `}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
             >
-              <CaretDownIcon
-                className="w-6 h-6 text-gray-500 shrink-0"
-              />
+              <CaretDownIcon className="w-6 h-6 text-gray-500 shrink-0" />
             </Popover.Trigger>
             <Popover.Content
               sideOffset={3}
               align="end"
-              className="bg-white shadow-xl px-3 py-4 rounded-lg w-64 border border-gray-300 text-sm text-gray-700"
+              className="bg-white shadow-xl font-normal px-3 py-4 rounded-lg w-64 border border-gray-300 text-sm text-gray-700 z-20"
             >
               {headerSections.map((section, index) => (
                 <PopoverSection
@@ -130,7 +165,7 @@ export default function TableHeader({
       <ContextMenu.Portal>
         <ContextMenu.Content
           className="bg-white shadow-xl px-3 py-4 rounded-lg w-64 border border-gray-300 text-xs
-            fixed mt-1 z-50
+            fixed mt-1 z-20
             origin-top-left
           "
         >
@@ -153,11 +188,11 @@ export default function TableHeader({
                   ${item.href ? '' : 'w-full text-left'} 
                 `;
 
-                const handleSelect = () => {
+                const handleSelect = async () => {
                   if (item.href) {
                     redirect(item.href);
                   } else if (item.onClick) {
-                    item.onClick();
+                    await item.onClick();
                   }
                 };
 
@@ -178,6 +213,6 @@ export default function TableHeader({
           ))}
         </ContextMenu.Content>
       </ContextMenu.Portal>
-    </ContextMenu.Root>
+    </ContextMenu.Root >
   );
 }

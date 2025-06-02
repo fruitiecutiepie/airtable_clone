@@ -39,36 +39,53 @@ export default function TableView({
 
   const {
     columns,
-    rows,
+    columnsStatus,
+    onInsCol,
+    onUpdCol,
+    onDelCol,
+  } = useColumns(tableId, setPageParams);
     totalRows,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    pageParams,
-    setPageParams,
-    search,
-    setSearch,
-    editingCell,
-    setEditingCell,
-    onSaveCell,
-    onDeleteRow,
-    onAddColumn,
-    onUpdateColumn,
-    onDeleteColumn,
-    addRows,
-    onInsertRow,
-    refetchColumns,
-    refetchRows,
-    updatingCell,
+  const onSortColumn = useCallback((column: TableColumn, direction: "asc" | "desc" | undefined) => {
+    setPageParams(p => ({
+      ...p,
+      cursor: undefined, // Reset cursor when sorting changes
+      sortCol: column.name,
+      sortDir: direction,
+    }));
+  }, [setPageParams]);
 
-    savedFilters,
-    isSavedFiltersLoading,
-    onApplySavedFilter,
-    refetchSavedFilters,
-    setSavedFilter,
-    deleteFilter,
-  } = useTableData(tableId, baseId, session.user.public_id);
+  const onToggleSortColumn = useCallback((column: TableColumn) => {
+    const isSorted = pageParams.sortCol === column.name;
+    const newDirection = isSorted && pageParams.sortDir === "asc"
+      ? "desc"
+      : isSorted && pageParams.sortDir === "desc"
+        ? undefined
+        : "asc";
+    onSortColumn(column, newDirection);
+  }, [onSortColumn, pageParams.sortCol, pageParams.sortDir]);
+
+  const onFilterColumn = useCallback((column: TableColumn) => {
+    // This function will clear the filter for the given column.
+    // Users can then use the specific filter cells to set a new filter.
+    setPageParams(p => {
+      const newFilters = { ...p.filters };
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete newFilters[column.name];
+      return {
+        ...p,
+        cursor: undefined, // Reset cursor when filter changes
+        filters: newFilters,
+      };
+    });
+    // Optionally, you could add logic here to focus the filter input for this column.
+    // For now, it just clears it.
+    alert(`Filter for '${column.name}' cleared. Use the filter row to set a new filter.`);
+  }, [setPageParams]);
+
+  const onHideColumn = useCallback((column: TableColumn) => {
+    setHiddenColumnIds(prev => new Set(prev).add(column.columnId));
+  }, []);
+
 
   // onMount
   useEffect(() => {
@@ -206,103 +223,30 @@ export default function TableView({
         </div>
       ),
       enableSorting: true,
-      cell: (info: CellContext<TableRow, TableRowValue>) => {
-        const rowId = info.row.original.rowId;
-        const val = info.getValue();
-        const isUpdating = updatingCell?.rowId === rowId && updatingCell.col === col.name;
-        const isEditing = editingCell?.rowId === rowId && editingCell.col === col.name;
-
-        if (editingCell?.rowId === rowId && editingCell.col === col.name) {
-          return (
-            <input
-              autoFocus
-              defaultValue={String(val)}
-              onBlur={async e => {
-                await onSaveCell(rowId, col.name, e.currentTarget.value, col.dataType);
-                setEditingCell(undefined);
-              }}
-              onKeyDown={e => {
-                if (e.key === "Enter") e.currentTarget.blur();
-                if (e.key === "Escape") setEditingCell(undefined);
-              }}
-              className="w-full h-full outline-none"
-            />
-          );
-        }
-        return (
-          <div
-            onDoubleClick={() => setEditingCell({ rowId, col: col.name })}
-            style={{ cursor: "pointer" }}
-          >
-            {String(val)}
-          </div>
-        );
-
-        // if (editingCell?.rowId === rowId && editingCell?.col === col.name) {
-        //   return (
-        //     <input
-        //       autoFocus
-        //       defaultValue={String(val)}
-        //       className="w-full h-full"
-        //       // className="w-full h-full outline-none focus:outline-none ring-0"
-        //       onBlur={async e => {
-        //         await onSaveCell(rowId, col.name, e.currentTarget.value, col.dataType)
-        //         setEditingCell(undefined)          // ← clear edit mode
-        //       }}
-        //       onKeyDown={e => {
-        //         if (e.key === "Enter") {
-        //           e.currentTarget.blur()       // will trigger onBlur above
-        //         }
-        //         if (e.key === "Escape") {
-        //           setEditingCell(undefined)        // allow Esc to cancel
-        //         }
-        //       }}
-        //     />
-        //   );
-        // }
-        // return (
-        //   <div
-        //     className="w-full h-full"
-        //     onDoubleClick={() => setEditingCell({ rowId, col: col.name })}
-        //   >
-        //     {String(val)}
-        //   </div>
-        // );
-        // return (
-        //   <CellRenderer
-        //     id={rowId}
-        //     val={val}
-        //     col={col}
-        //     isEditing={isEditing}
-        //     isUpdating={isUpdating}
-        //     onStartEdit={() => {
-        //       console.log("Starting edit for cell", rowId, col.name);
-        //       setEditingCell({ rowId, col: col.name })
-        //     }}
-        //     onSaveCell={async (rowId: string, colName: string, raw: string, type: TableColumnDataType) => {
-        //       await onSaveCell(rowId, colName, raw, type);
-        //       setEditingCell(undefined);
-        //     }}
-        //   />
-        // );
-      },
-    })),
-    {
-      id: "actions",
-      header: "Actions", cell: ({ row }) => (
-        <Button
-          onClick={() => onDeleteRow(row.original.rowId)}
-          className="h-5 w-full justify-center items-center text-center"
-        >
-          Delete
-        </Button>
-      )
-    }
-  ], [columns, onUpdateColumn, onDeleteColumn, updatingCell, editingCell, setEditingCell, onSaveCell, onDeleteRow]);
-
-  useEffect(() => {
-    console.log("editingCell changed:", editingCell);
-  }, [editingCell]);
+      cell: ({ row }) => row.index + 1,
+      size: 40
+    },
+    ...columns
+      .filter(col => !hiddenColumnIds.has(col.columnId)) // Filter out hidden columns
+      .map((col: TableColumn) => ({
+        id: col.name,
+        accessorFn: (row: TableRow) => row.data[col.name],
+        header: () => TableHeader({
+          col,
+          sortDir: pageParams.sortCol === col.name ? pageParams.sortDir : undefined,
+          onUpdateColumn: onUpdCol,
+          onSortColumn,
+          onToggleSortColumn,
+          onFilterColumn,
+          onHideColumn,
+          onDeleteColumn: onDelCol
+        }),
+        cell: EditableCell,
+        meta: {
+          dataType: col.dataType,
+        },
+      })),
+  ], [columns, hiddenColumnIds, pageParams.sortCol, pageParams.sortDir, onUpdCol, onSortColumn, onToggleSortColumn, onFilterColumn, onHideColumn, onDelCol]);
 
   const table = useReactTable<TableRow>({
     data: rows,
