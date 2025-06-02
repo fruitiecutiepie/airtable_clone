@@ -56,6 +56,7 @@ export const getTables = publicProcedure
       return results;
     } catch (err) {
       await client.query("ROLLBACK");
+      console.error("Error fetching tables:", err);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: err instanceof Error ? err.message : String(err),

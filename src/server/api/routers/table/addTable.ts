@@ -39,6 +39,7 @@ export const addTable = publicProcedure
         updatedAt: input.updatedAt
       };
     } catch (err: unknown) {
+      console.error("Error adding table:", err);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: err instanceof Error ? err.message : String(err),

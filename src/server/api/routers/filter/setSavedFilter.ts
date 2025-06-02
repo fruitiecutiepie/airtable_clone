@@ -62,6 +62,7 @@ export const setSavedFilter = publicProcedure
         updatedAt: input.updatedAt,
       };
     } catch (err: unknown) {
+      console.error("Error setting saved filter:", err);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: err instanceof Error ? err.message : String(err),

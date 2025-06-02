@@ -36,6 +36,7 @@ export const addColumn = publicProcedure
       return { columnId, name, dataType, position };
     } catch (err: unknown) {
       await client.query('ROLLBACK');
+      console.error("Error adding column:", err);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: err instanceof Error ? err.message : String(err),

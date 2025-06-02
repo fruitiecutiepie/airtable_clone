@@ -163,6 +163,10 @@ export const getRows = publicProcedure
       for (const r of raw) {
         const parsed = dataSchema.safeParse(r.data);
         if (!parsed.success) {
+          console.error(
+            `Row ${r.row_id} data validation failed:`,
+            parsed.error.issues
+          );
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: `Row ${r.row_id} data mismatch: ${JSON.stringify(parsed.error.issues)}`

@@ -29,6 +29,7 @@ export const updRow = publicProcedure
       }
       return;
     } catch (err) {
+      console.error("Error updating row:", err);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: err instanceof Error ? err.message : String(err),

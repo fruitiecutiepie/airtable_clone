@@ -38,6 +38,7 @@ export const getBases = publicProcedure
         updatedAt: r.updated_at.toISOString(),
       }));
     } catch (err) {
+      console.error('Error fetching bases:', err);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: err instanceof Error ? err.message : String(err),

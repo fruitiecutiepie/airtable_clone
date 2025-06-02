@@ -27,6 +27,7 @@ export const updColumn = publicProcedure
       if (!res.rowCount) throw new Error("Column not found");
       return;
     } catch (err) {
+      console.error("Error updating column:", err);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: err instanceof Error ? err.message : String(err),

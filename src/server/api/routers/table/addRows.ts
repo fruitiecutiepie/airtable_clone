@@ -43,6 +43,7 @@ export const addRows = publicProcedure
       const jsonRows = input.rows.map((r, i) => {
         const parsed = rowSchema.safeParse(r);
         if (!parsed.success) {
+          console.error(`Row ${i} invalid:`, parsed.error.issues);
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: `Row ${i} invalid: ${JSON.stringify(parsed.error.issues)}`,
@@ -67,6 +68,7 @@ export const addRows = publicProcedure
       await client.query("COMMIT");
     } catch (err) {
       await client.query("ROLLBACK");
+      console.error("Error adding rows:", err);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: err instanceof Error ? err.message : String(err),

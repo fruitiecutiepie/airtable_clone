@@ -34,6 +34,7 @@ export const updBase = publicProcedure
       );
 
       if (res.rowCount === 0) {
+        console.error("Base not found or you do not have permission to update it");
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Base not found or you do not have permission",
@@ -42,6 +43,7 @@ export const updBase = publicProcedure
 
       return;
     } catch (err: unknown) {
+      console.error("Error updating base:", err);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: err instanceof Error ? err.message : String(err),

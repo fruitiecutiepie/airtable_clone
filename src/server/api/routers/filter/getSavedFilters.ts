@@ -35,6 +35,7 @@ export const getSavedFilters = publicProcedure
         updatedAt: r.updated_at.toISOString(),
       }));
     } catch (err) {
+      console.error("Error fetching saved filters:", err);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: err instanceof Error ? err.message : String(err),

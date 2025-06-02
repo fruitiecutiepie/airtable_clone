@@ -40,6 +40,7 @@ export const addBase = publicProcedure
         updatedAt: input.updatedAt
       };
     } catch (err: unknown) {
+      console.error('Error adding base:', err);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: err instanceof Error ? err.message : String(err),

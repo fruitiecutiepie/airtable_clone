@@ -26,6 +26,7 @@ export const delBase = publicProcedure
         throw new Error('Failed to delete table');
       }
     } catch (err: unknown) {
+      console.error('Error deleting base:', err);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: err instanceof Error ? err.message : String(err),
