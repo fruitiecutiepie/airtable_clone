@@ -1,7 +1,7 @@
 'use client';
 import { ContextMenu, Popover } from "radix-ui";
-import { AdjustmentsHorizontalIcon, BarsArrowDownIcon, BarsArrowUpIcon, EyeSlashIcon, HashtagIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline"
-import React from 'react';
+import { AdjustmentsHorizontalIcon, BarsArrowDownIcon, BarsArrowUpIcon, EyeSlashIcon, HashtagIcon, TrashIcon } from "@heroicons/react/24/outline"
+import React, { useMemo } from 'react';
 import type { TableColumn } from '~/lib/schemas';
 import { CaretDownIcon, CheckboxIcon, LetterCaseCapitalizeIcon, Pencil1Icon, Pencil2Icon } from "@radix-ui/react-icons";
 import { PopoverSection, type PopoverItem, type PopoverSectionProps } from "~/app/components/ui/PopoverSection";
@@ -14,7 +14,7 @@ interface TableHeaderProps {
 export default function TableHeader({
   col
 }: TableHeaderProps) {
-  const headerSections: PopoverSectionProps[] = [
+  const headerSections: PopoverSectionProps[] = useMemo(() => [
     {
       title: undefined,
       items: [

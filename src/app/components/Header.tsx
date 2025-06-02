@@ -6,16 +6,11 @@ import { Avatar, Popover } from "radix-ui";
 import { ChatBubbleIcon, EnvelopeClosedIcon, ExitIcon, FileIcon, GlobeIcon, HamburgerMenuIcon, LaptopIcon, PersonIcon, PlayIcon, QuestionMarkCircledIcon, StarIcon } from '@radix-ui/react-icons';
 import { BellIcon, CodeBracketIcon, GiftIcon, PaintBrushIcon, UsersIcon } from "@heroicons/react/24/outline"
 import { PopoverSection, type PopoverSectionProps } from './ui/PopoverSection';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ButtonWithTooltip } from './ui/ButtonWithTooltip';
 
 export default function Header() {
-  const { data: session } = useSession();
-  if (!session) return null;
-
-  const avatarSrc = session.user.image ?? 'https://www.gravatar.com/avatar/3b3be63a4c2a439b013787725dfce802?d=identicon';
-
-  const helpSections: PopoverSectionProps[] = [
+  const helpSections: PopoverSectionProps[] = useMemo(() => [
     {
       title: "Support",
       items: [
@@ -76,9 +71,9 @@ export default function Header() {
         }
       ]
     },
-  ];
+  ], []);
 
-  const accountSections: PopoverSectionProps[] = [
+  const accountSections: PopoverSectionProps[] = useMemo(() => [
     {
       title: undefined,
       items: [
@@ -104,7 +99,12 @@ export default function Header() {
         }
       ]
     },
-  ];
+  ], []);
+
+  const { data: session } = useSession();
+  if (!session) return null;
+
+  const avatarSrc = session.user.image ?? 'https://www.gravatar.com/avatar/3b3be63a4c2a439b013787725dfce802?d=identicon';
 
   return (
     <header>
@@ -253,7 +253,7 @@ export default function Header() {
                 items={[
                   {
                     icon: ExitIcon,
-                    onClick: () => void signOut(),
+                    onClick: async () => await signOut(),
                     text: "Sign out"
                   }
                 ]}
