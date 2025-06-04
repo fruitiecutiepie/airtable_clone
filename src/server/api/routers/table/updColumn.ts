@@ -15,7 +15,17 @@ export const updColumn = publicProcedure
     const { tableId, columnId, name, dataType, position } = input;
     const client = await pool.connect();
     try {
-      const res = await client.query(
+      const res = await client.query<{ name: string; table_id: number }>(
+        `SELECT name, table_id FROM app_columns WHERE column_id = $1`,
+        [input.columnId]
+      );
+      if (!res.rowCount || !res.rows[0]) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Column not found" });
+      }
+      const oldName = res.rows[0].name;
+      const tableId = res.rows[0].table_id;
+
+      await client.query(
         `
         UPDATE app_columns
         SET name = $1, data_type = $2, position = $3, updated_at = now()
@@ -24,7 +34,20 @@ export const updColumn = publicProcedure
         `,
         [name, dataType, position, columnId, tableId]
       );
-      if (!res.rowCount) throw new Error("Column not found");
+
+      if (oldName !== input.name) {
+        await client.query(
+          `
+          UPDATE app_rows
+            SET data = (data - $1::text)::jsonb
+              || jsonb_build_object($2::text, data -> $1::text)
+           WHERE table_id = $3
+           AND data ? $1::text
+          `,
+          [oldName, input.name, tableId]
+        );
+      }
+
       return;
     } catch (err) {
       console.error("Error updating column:", err);
