@@ -22,7 +22,10 @@ export const delRow = publicProcedure
         [rowId, tableId]
       );
       if (!res.rowCount) {
-        throw new Error("Row not found");
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Row not found or you do not have permission to delete it',
+        });
       }
       return;
     } catch (err) {

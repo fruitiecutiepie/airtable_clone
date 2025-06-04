@@ -21,7 +21,12 @@ export const delColumn = publicProcedure
         `,
         [columnId, tableId]
       );
-      if (!res.rowCount) throw new Error("Column not found");
+      if (!res.rowCount) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Column not found or you do not have permission to delete it',
+        });
+      };
       return;
     } catch (err) {
       console.error("Error deleting column:", err);

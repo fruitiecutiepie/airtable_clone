@@ -16,7 +16,7 @@ export const getSavedFilters = publicProcedure
       const res = await client.query<{
         filter_id: number;
         name: string;
-        filters: Record<string, Filter>;
+        filters: Record<string, Filter[]>;
         created_at: Date;
         updated_at: Date;
       }>(`
@@ -28,7 +28,7 @@ export const getSavedFilters = publicProcedure
       `, [input.baseId, input.tableId]);
 
       return res.rows.map(r => ({
-        filter_id: r.filter_id,
+        filterId: r.filter_id,
         name: r.name,
         filters: r.filters,
         createdAt: r.created_at.toISOString(),

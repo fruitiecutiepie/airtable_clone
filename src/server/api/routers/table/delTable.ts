@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { pool } from "~/server/db/db";
 import { publicProcedure } from "../../trpc";
+import { TRPCError } from "@trpc/server";
 
 export const delTable = publicProcedure
   .input(
@@ -20,11 +21,17 @@ export const delTable = publicProcedure
         [tableId]
       );
       if (delTable.rowCount === 0) {
-        throw new Error('Failed to delete table');
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Table not found or you do not have permission to delete it',
+        });
       }
       return;
     } catch (err: unknown) {
-      return { error: err instanceof Error ? err.message : err };
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       client.release();
     }

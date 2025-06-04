@@ -7,6 +7,7 @@ import {
   type TableRow,
   type TableColumnDataType,
   type TableRowValue,
+  type Filter,
 } from "~/lib/schemas";
 import { publicProcedure } from "../../trpc";
 import { TRPCError } from "@trpc/server";
@@ -20,7 +21,9 @@ export const getRows = publicProcedure
       cursor: CursorSchema.optional(),
       sortCol: z.string().default("id"),
       sortDir: z.enum(["asc", "desc"]).default("asc"),
-      filters: z.record(FilterSchema).default({}),
+      filters: z
+        .record(z.array(FilterSchema))
+        .default({}),
     })
   )
   .output(
@@ -61,7 +64,8 @@ export const getRows = publicProcedure
             cols.map((c) => [c.name, zForType[c.data_type]])
           )
         )
-        .strict();
+        // Allow missing keys for undefined columns
+        .partial();
 
       const where: string[] = ["table_id = $1"];
       const params: unknown[] = [tableId];
@@ -73,51 +77,52 @@ export const getRows = publicProcedure
         idx++;
       }
 
-      for (const [col, cond] of Object.entries(filters)) {
-        if (
-          cond.value === undefined &&
-          !["isnull", "isnotnull"].includes(cond.op)
-        )
-          continue;
+      for (const [col, condArray] of Object.entries(filters)) {
+        for (const cond of condArray) {
+          if (
+            cond.value === undefined &&
+            !["isnull", "isnotnull"].includes(cond.op)
+          ) continue;
 
-        const path = `(data->>'${col}')`;
-        switch (cond.op) {
-          case "eq":
-            where.push(`${path} = $${idx}`);
-            params.push(cond.value);
-            idx++;
-            break;
-          case "neq":
-            where.push(`${path} <> $${idx}`);
-            params.push(cond.value);
-            idx++;
-            break;
-          case "lt":
-            where.push(`${path}::numeric < $${idx}`);
-            params.push(cond.value);
-            idx++;
-            break;
-          case "gt":
-            where.push(`${path}::numeric > $${idx}`);
-            params.push(cond.value);
-            idx++;
-            break;
-          case "in":
-            where.push(`${path} ILIKE $${idx}`);
-            params.push(`%${cond.value}%`);
-            idx++;
-            break;
-          case "nin":
-            where.push(`${path} NOT ILIKE $${idx}`);
-            params.push(`%${cond.value}%`);
-            idx++;
-            break;
-          case "isnull":
-            where.push(`(${path} IS NULL OR ${path} = '')`);
-            break;
-          case "isnotnull":
-            where.push(`${path} IS NOT NULL`);
-            break;
+          const path = `(data->>'${col}')`;
+          switch (cond.op) {
+            case "lt":
+              where.push(`${path}::numeric < $${idx}`);
+              params.push(cond.value);
+              idx++;
+              break;
+            case "gt":
+              where.push(`${path}::numeric > $${idx}`);
+              params.push(cond.value);
+              idx++;
+              break;
+            case "eq":
+              where.push(`${path} = $${idx}`);
+              params.push(cond.value);
+              idx++;
+              break;
+            case "neq":
+              where.push(`${path} <> $${idx}`);
+              params.push(cond.value);
+              idx++;
+              break;
+            case "in":
+              where.push(`${path} ILIKE $${idx}`);
+              params.push(`%${cond.value}%`);
+              idx++;
+              break;
+            case "nin":
+              where.push(`${path} NOT ILIKE $${idx}`);
+              params.push(`%${cond.value}%`);
+              idx++;
+              break;
+            case "isnull":
+              where.push(`(${path} IS NULL OR ${path} = '')`);
+              break;
+            case "isnotnull":
+              where.push(`${path} IS NOT NULL`);
+              break;
+          }
         }
       }
 
@@ -183,6 +188,9 @@ export const getRows = publicProcedure
 
       const hasMore = validated.length > limit;
       if (hasMore) validated.pop();
+      console.log(
+        `Fetched ${validated.length} rows for table ${tableId}, hasMore: ${hasMore}`
+      );
 
       return {
         rows: validated,

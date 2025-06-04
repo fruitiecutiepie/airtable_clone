@@ -23,7 +23,10 @@ export const delBase = publicProcedure
         [input.baseId, input.userId]
       );
       if (delTable.rowCount === 0) {
-        throw new Error('Failed to delete table');
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Base not found or you do not have permission to delete it',
+        });
       }
     } catch (err: unknown) {
       console.error('Error deleting base:', err);

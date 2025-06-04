@@ -28,7 +28,10 @@ export const addBase = publicProcedure
         [input.userId, input.name, input.createdAt, input.updatedAt]
       );
       if (insertResult.rowCount === 0 || !insertResult.rows[0]) {
-        throw new Error('Failed to create table');
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to create base',
+        });
       }
       const baseId = insertResult.rows[0].base_id;
 

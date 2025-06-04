@@ -25,7 +25,10 @@ export const updRow = publicProcedure
         [rowId, JSON.stringify(data), tableId]
       );
       if (!result.rowCount) {
-        throw new Error("Row not found");
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Row not found or you do not have permission to update it',
+        });
       }
       return;
     } catch (err) {

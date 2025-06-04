@@ -1,13 +1,13 @@
 import NextAuth from "next-auth";
 import type { AdapterUser } from "next-auth/adapters"
 import NeonAdapter from '@auth/neon-adapter';
+import { TRPCError } from "@trpc/server";
 import { Pool } from "@neondatabase/serverless"
-
 import { cache } from "react";
+import { nanoid } from "nanoid";
 
 import { authConfig } from "./config";
 import { env } from "~/env";
-import { nanoid } from "nanoid";
 
 const { auth: uncachedAuth, handlers, signIn, signOut } = NextAuth(() => {
   const pool = new Pool({ connectionString: env.DATABASE_URL })
@@ -17,7 +17,10 @@ const { auth: uncachedAuth, handlers, signIn, signOut } = NextAuth(() => {
     ...raw,
     createUser: async (data: AdapterUser) => {
       if (typeof raw.createUser !== "function") {
-        throw new Error("Adapter.createUser is not implemented");
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Adapter.createUser is not implemented",
+        });
       }
       const pub = nanoid();
       const { rows: [user] } = await pool.query<AdapterUser & { public_id: string }>(`
@@ -34,7 +37,10 @@ const { auth: uncachedAuth, handlers, signIn, signOut } = NextAuth(() => {
         pub
       ]);
       if (!user) {
-        throw new Error("Failed to create user");
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create user",
+        });
       }
 
       pool.on("connect", async (client: Pool) => {

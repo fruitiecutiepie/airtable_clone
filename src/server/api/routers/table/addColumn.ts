@@ -30,7 +30,10 @@ export const addColumn = publicProcedure
         [tableId, name, dataType, position]
       );
       if (insertCol.rowCount === 0 || !insertCol.rows[0]) {
-        throw new Error('Failed to create column');
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to create column',
+        });
       }
       const columnId = insertCol.rows[0].column_id;
       return { columnId, name, dataType, position };
