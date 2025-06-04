@@ -16,6 +16,8 @@ export const addRows = publicProcedure
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
+      // disable sync commits for bulk load
+      await client.query("SET LOCAL synchronous_commit = OFF");
 
       const { rows: cols } = await client.query<{
         name: string;
@@ -52,17 +54,14 @@ export const addRows = publicProcedure
         return JSON.stringify(parsed.data);
       });
 
-      const groups = jsonRows
-        .map((_, i) => `($1, $2, $${i + 3}::jsonb)`)
-        .join(", ");
-      const values: unknown[] = [input.tableId, input.createdAt, ...jsonRows];
+      const jsonArray = `[${jsonRows.join(",")}]`;
 
       await client.query(
         `
         INSERT INTO app_rows (table_id, created_at, data)
-        VALUES ${groups}
+        SELECT $1, $2::timestamptz, jsonb_array_elements($3::jsonb)
         `,
-        values
+        [input.tableId, input.createdAt, jsonArray]
       );
 
       await client.query("COMMIT");
