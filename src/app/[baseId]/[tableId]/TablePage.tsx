@@ -234,21 +234,25 @@ export default function TablePage({
           >
             {tables?.map(t => {
               return (
-                <Button
+                <Popover.Root
                   key={t.id}
-                  onClick={() => redirect(`/${baseId}/${t.id}/${viewId}`)}
-                  className={`w-fit gap-1 text-gray-800 rounded-b-none rounded-t-sm h-8
-                  ${tableId === t.id ? "bg-white hover:bg-white" : "bg-purple-800 text-white hover:bg-purple-900"}
-                `}
                 >
-                  {t.name}
-                  <Popover.Root>
-                    <Popover.Trigger
-                      asChild
-                      className={`
+                  <Popover.Trigger
+                    asChild
+                    className={`
                       h-6 w-6 inline-flex items-center justify-center cursor-pointer
                     `}
+                  >
+                    <Button
+                      onClick={() => {
+                        if (tableId === t.id) return;
+                        redirect(`/${baseId}/${t.id}/${viewId}`)
+                      }}
+                      className={`w-fit gap-1 text-gray-800 rounded-b-none rounded-t-sm h-8
+                        ${tableId === t.id ? "bg-white hover:bg-white" : "bg-purple-800 text-white hover:bg-purple-900"}
+                      `}
                     >
+                      {t.name}
                       <CaretDownIcon
                         className={`w-6 h-6 text-gray-500 shrink-0
                         ${tableId === t.id ? "text-gray-800" : "text-white opacity-70"}
@@ -276,10 +280,205 @@ export default function TablePage({
             <div
               className="h-8 w-8 flex items-center justify-center"
             >
-              <PlusIcon
-                className="w-5 h-5 text-gray-100 cursor-pointer"
-                onClick={onAddTable}
-              />
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    className="hover:bg-inherit text-gray-700 gap-1 font-semibold"
+                  >
+                    <PlusIcon
+                      className="w-5 h-5 text-gray-100 cursor-pointer"
+                    />
+                  </Button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content
+                  className="bg-white shadow-xl p-3 rounded-lg w-72
+                    border border-gray-300 text-xs space-y-1 flex flex-col
+                    fixed mt-1 z-20 origin-top-left
+                  "
+                  sideOffset={5}
+                  align="start"
+                >
+                  <p className="m-2 text-gray-400 text-[11px]">
+                    {`Add a blank table`}
+                  </p>
+
+                  <DropdownMenu.Item
+                    className={`
+                      flex items-center p-2 gap-3 rounded w-full
+                      disabled:opacity-50 disabled:cursor-not-allowed 
+                      cursor-pointer data-[highlighted]:bg-gray-100
+                      outline-none text-xs leading-none
+                    `}
+                    onSelect={onAddTable}
+                  >
+                    <FileIcon
+                      className="inline-flex items-center justify-center h-4 w-4 shrink-0"
+                    />
+                    <span className={`text-gray-700`}>
+                      {"Start from scratch"}
+                    </span>
+                  </DropdownMenu.Item>
+
+                  <DropdownMenu.Separator
+                    className="my-2 mx-2 h-px bg-gray-200"
+                  />
+
+                  <p className="m-2 text-gray-400 text-[11px]">
+                    {`Add from other sources`}
+                  </p>
+
+                  <DropdownMenu.Item
+                    className={`
+                      flex items-center p-2 gap-3 rounded w-full
+                      disabled:opacity-50 disabled:cursor-not-allowed 
+                      cursor-pointer data-[highlighted]:bg-gray-100
+                      outline-none text-xs leading-none
+                    `}
+                  // onSelect={onAddTable}
+                  >
+                    <Image
+                      src="/Airtable-Mark-Color.png"
+                      alt="Airtable Logo"
+                      width={16}
+                      height={16}
+                    />
+                    <span className={`text-gray-700`}>
+                      {`Airtable base`}
+                    </span>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className={`
+                      flex items-center p-2 gap-3 rounded w-full
+                      disabled:opacity-50 disabled:cursor-not-allowed 
+                      cursor-pointer data-[highlighted]:bg-gray-100
+                      outline-none text-xs leading-none
+                    `}
+                  // onSelect={onAddTable}
+                  >
+                    <FileTextIcon
+                      className="inline-flex items-center justify-center h-4 w-4 shrink-0"
+                    />
+                    <span className={`text-gray-700`}>
+                      {`CSV file`}
+                    </span>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className={`
+                      flex items-center p-2 gap-3 rounded w-full
+                      disabled:opacity-50 disabled:cursor-not-allowed 
+                      cursor-pointer data-[highlighted]:bg-gray-100
+                      outline-none text-xs leading-none
+                    `}
+                  // onSelect={onAddTable}
+                  >
+                    <Image
+                      src="/Google-Calendar-Logo.png"
+                      alt="Google Calendar Logo"
+                      width={16}
+                      height={16}
+                    />
+                    <span className={`text-gray-700`}>
+                      {`Google Calendar`}
+                    </span>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className={`
+                      flex items-center p-2 gap-3 rounded w-full
+                      disabled:opacity-50 disabled:cursor-not-allowed 
+                      cursor-pointer data-[highlighted]:bg-gray-100
+                      outline-none text-xs leading-none
+                    `}
+                  // onSelect={onAddTable}
+                  >
+                    <Image
+                      src="/Google-Sheets-Logo.png"
+                      alt="Google Sheets Logo"
+                      width={16}
+                      height={16}
+                    />
+                    <span className={`text-gray-700`}>
+                      {`Google Sheets`}
+                    </span>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className={`
+                      flex items-center p-2 gap-3 rounded w-full
+                      disabled:opacity-50 disabled:cursor-not-allowed 
+                      cursor-pointer data-[highlighted]:bg-gray-100
+                      outline-none text-xs leading-none
+                    `}
+                  // onSelect={onAddTable}
+                  >
+                    <Image
+                      src="/Microsoft-Excel-Logo.png"
+                      alt="Microsoft Excel Logo"
+                      width={16}
+                      height={16}
+                    />
+                    <span className={`text-gray-700`}>
+                      {`Microsoft Excel`}
+                    </span>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className={`
+                      flex items-center p-2 gap-3 rounded w-full
+                      disabled:opacity-50 disabled:cursor-not-allowed 
+                      cursor-pointer data-[highlighted]:bg-gray-100
+                      outline-none text-xs leading-none
+                    `}
+                  // onSelect={onAddTable}
+                  >
+                    <Image
+                      src="/Salesforce-Logo.png"
+                      alt="Salesforce Logo"
+                      width={16}
+                      height={16}
+                    />
+                    <span className={`text-gray-700`}>
+                      {`Salesforce`}
+                    </span>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className={`
+                      flex items-center p-2 gap-3 rounded w-full
+                      disabled:opacity-50 disabled:cursor-not-allowed 
+                      cursor-pointer data-[highlighted]:bg-gray-100
+                      outline-none text-xs leading-none
+                    `}
+                  // onSelect={onAddTable}
+                  >
+                    <Image
+                      src="/Smartsheet-Logo.png"
+                      alt="Smartsheet Logo"
+                      width={16}
+                      height={16}
+                    />
+                    <span className={`text-gray-700`}>
+                      {`Smartsheet`}
+                    </span>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Sub>
+                    <DropdownMenu.SubTrigger
+                      className="flex items-center p-2 gap-3 rounded w-full
+                      disabled:opacity-50 disabled:cursor-not-allowed 
+                      cursor-pointer data-[highlighted]:bg-gray-100
+                      outline-none text-xs leading-none"
+                    >
+                      <BookOpenIcon
+                        className="inline-flex items-center justify-center h-4 w-4 shrink-0"
+                      />
+                      <span className={`text-gray-700`}>
+                        {`23 more sources...`}
+                      </span>
+                      <div className="ml-auto pl-5 text-mauve11 group-data-[disabled]:text-mauve8 group-data-[highlighted]:text-white">
+                        <ChevronRightIcon />
+                      </div>
+                    </DropdownMenu.SubTrigger>
+                  </DropdownMenu.Sub>
+                </DropdownMenu.Content>
+              </DropdownMenu.Root>
             </div>
           </div>
           <div
