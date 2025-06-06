@@ -15,6 +15,10 @@ import { useSavedFilters } from "~/app/hooks/useSavedFilters";
 import { ToggleFieldSection, type FieldItem } from "~/app/components/ToggleFieldSection";
 import { useColumns } from "~/app/hooks/useColumns";
 import { SidebarContext } from "./SidebarContext";
+import Image from "next/image";
+import { TableOptionsSort } from "~/app/components/TableOptionsSort";
+import { TableOptionsHide } from "~/app/components/TableOptionsHide";
+import { TableOptionsFilter } from "~/app/components/TableOptionsFilter";
 
 interface TablePageProps {
   baseId: number,
@@ -121,6 +125,7 @@ export default function TablePage({
           icon: TrashIcon,
           text: "Delete table",
           textColorClass: "text-red-700",
+          disabled: tables.length <= 1,
           onClick: async () => {
             if (!confirm("Are you sure you want to delete this table?")) return;
             await onDelTable(tableId);
@@ -131,8 +136,8 @@ export default function TablePage({
   ], [onDelTable, onUpdTable, tableId, tables]);
 
   const editViewSections: PopoverSectionProps[] = useMemo(() => [
-      search: false,
     {
+      search: false,
       title: undefined,
       items: [
         {
@@ -159,31 +164,16 @@ export default function TablePage({
           icon: TrashIcon,
           text: "Delete view",
           textColorClass: "text-red-700",
-          disabled: true,
+          disabled: filters?.length <= 1,
           onClick: async () => {
             if (!confirm("Are you sure you want to delete this view?")) return;
             await onDelFilter(viewId);
             redirect(`/${baseId}/${tableId}/${filters?.[0]?.filterId}`);
           }
         }
-      ]
+      ],
     },
   ], [baseId, filters, onApplyFilter, onDelFilter, onSetFilter, pageParams.filters, tableId, viewId]);
-
-  const fields: FieldItem[] = useMemo(
-    () =>
-      columns.map((col) => ({
-        id: col.columnId.toString(),
-        name: col.name,
-        enabled: !hiddenColumnIds.has(col.columnId),
-        icon: col.dataType === "text" ? <LetterCaseCapitalizeIcon className="w-4 h-4" /> :
-          col.dataType === "numeric" ? <HashtagIcon className="w-4 h-4" /> :
-            col.dataType === "date" ? <CalendarIcon className="w-4 h-4" /> :
-              col.dataType === "boolean" ? <CheckboxIcon className="w-4 h-4" /> :
-                <QuestionMarkIcon className="w-4 h-4" />,
-      })),
-    [columns, hiddenColumnIds]
-  );
 
   const handleColumnToggle = useCallback((columnId: string, enabled: boolean) => {
     setHiddenColumnIds((prev) => {
@@ -197,19 +187,6 @@ export default function TablePage({
       return copy;
     });
   }, []);
-
-  const handleShowAll = useCallback(() => {
-    setHiddenColumnIds(new Set())
-  }, []);
-
-  const handleHideAll = useCallback(() => {
-    setHiddenColumnIds(new Set(columns.map((c) => c.columnId)));
-  }, [columns]);
-
-  // const handleFieldAction = (fieldId: string, action: string) => {
-  //   console.log(`Action "${action}" triggered for field "${fieldId}"`)
-  //   // Handle field actions like edit, duplicate, delete
-  // }
 
   const onSortColumn = useCallback((column: TableColumn, direction: "asc" | "desc" | undefined) => {
     setPageParams(p => ({
@@ -607,45 +584,25 @@ export default function TablePage({
             className="w-px h-5 bg-gray-300 mx-2 data-[orientation=horizontal]:h-px data-[orientation=vertical]:h-full data-[orientation=horizontal]:w-full data-[orientation=vertical]:w-px"
           />
 
-          <div>
-            <Popover.Root>
-              <Popover.Trigger
-                asChild
-              >
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  className="hover:bg-gray-200 text-gray-700"
-                >
-                  <EyeSlashIcon className="w-4 h-4 mr-1" />
-                  Hide fields
-                </Button>
-              </Popover.Trigger>
-              <Popover.Content
-                sideOffset={5}
-                align="start"
-                className="shadow-xl text-xs min-w-72 text-gray-700 z-20"
-              >
-                <ToggleFieldSection
-                  fields={fields}
-                  onFieldToggle={handleColumnToggle}
-                  onShowAll={handleShowAll}
-                  onHideAll={handleHideAll}
-                // onFieldAction={handleFieldAction}
-                />
-              </Popover.Content>
-            </Popover.Root>
-          </div>
-          <div>
-            <TableOptionsSort
-              columns={columns}
-              onSortColumn={onSortColumn}
-            />
-          </div>
+          <TableOptionsHide
+            columns={columns}
+            hiddenColumnIds={hiddenColumnIds}
+            setHiddenColumnIds={setHiddenColumnIds}
+            handleColumnToggle={handleColumnToggle}
+          />
+          <TableOptionsFilter
+            columns={columns}
+            pageParams={pageParams}
+            setPageParams={setPageParams}
+          />
+          <TableOptionsSort
+            columns={columns}
+            onSortColumn={onSortColumn}
+          />
           <Button
             variant="ghost"
             size="xs"
-            className="hover:bg-gray-100 text-gray-700"
+            className="hover:bg-gray-200 text-gray-700"
           >
             <SwatchIcon className="w-4 h-4 mr-1" />
             Color
@@ -653,7 +610,7 @@ export default function TablePage({
           <Button
             variant="ghost"
             size="xs"
-            className="hover:bg-gray-100 text-gray-700"
+            className="hover:bg-gray-200 text-gray-700"
           >
             <ArrowTopRightOnSquareIcon className="w-4 h-4 mr-1" />
             Share and sync

@@ -48,14 +48,18 @@ export default function TableHeader({
         },
         {
           icon: BarsArrowDownIcon,
-          text: "Sort A -> Z",
+          text: col.dataType === 'numeric'
+            ? 'Sort 1 → 9'
+            : 'Sort A → Z',
           onClick: () => {
             onSortColumn(col, "asc");
           }
         },
         {
           icon: BarsArrowUpIcon,
-          text: "Sort Z -> A",
+          text: col.dataType === 'numeric'
+            ? 'Sort 9 → 1'
+            : 'Sort Z → A',
           onClick: () => {
             onSortColumn(col, "desc");
           }
