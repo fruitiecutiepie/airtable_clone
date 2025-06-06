@@ -84,9 +84,8 @@ export default function TableHeader({
           text: "Delete field",
           textColorClass: "text-red-700",
           onClick: async () => {
-            if (confirm("Delete this column?")) {
-              await onDeleteColumn(col.columnId);
-            }
+            if (!confirm("Are you sure you want to delete this column?")) return;
+            await onDeleteColumn(col.columnId);
           }
         }
       ]
@@ -105,7 +104,7 @@ export default function TableHeader({
           "
         >
           <div
-            className="flex items-center justify-center gap-2 text-gray-700 
+            className="flex items-center w-full px-2 gap-2 text-gray-700 
               max-w-5/6 flex-grow min-w-0
             "
             onClick={(e) => {
