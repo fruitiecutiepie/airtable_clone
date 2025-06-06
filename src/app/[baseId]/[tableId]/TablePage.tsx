@@ -93,6 +93,7 @@ export default function TablePage({
 
   const editTableSections: PopoverSectionProps[] = useMemo(() => [
     {
+      search: false,
       title: undefined,
       items: [
         {
@@ -130,6 +131,7 @@ export default function TablePage({
   ], [onDelTable, onUpdTable, tableId, tables]);
 
   const editViewSections: PopoverSectionProps[] = useMemo(() => [
+      search: false,
     {
       title: undefined,
       items: [
@@ -243,22 +245,23 @@ export default function TablePage({
                         ${tableId === t.id ? "text-gray-800" : "text-white opacity-70"}
                       `}
                       />
-                    </Popover.Trigger>
-                    <Popover.Content
-                      sideOffset={8}
-                      align="end"
-                      className="bg-white shadow-xl px-3 py-4 rounded-lg w-64 border border-gray-300 text-sm text-gray-700 z-20"
-                    >
-                      {editTableSections.map((section, index) => (
-                        <PopoverSection
-                          key={index}
-                          title={section.title}
-                          items={section.items}
-                        />
-                      ))}
-                    </Popover.Content>
-                  </Popover.Root>
-                </Button>
+                    </Button>
+                  </Popover.Trigger>
+                  <Popover.Content
+                    sideOffset={5}
+                    align="start"
+                    className="bg-white shadow-xl px-3 py-4 rounded-lg w-64 border border-gray-300 text-sm text-gray-700 z-20"
+                  >
+                    {editTableSections.map((section, index) => (
+                      <PopoverSection
+                        key={index}
+                        title={section.title}
+                        items={section.items}
+                        search={section.search}
+                      />
+                    ))}
+                  </Popover.Content>
+                </Popover.Root>
               )
             })}
             <div
@@ -317,7 +320,7 @@ export default function TablePage({
               <Button
                 variant="ghost"
                 size="xs"
-                className="hover:bg-gray-100 text-gray-700 gap-1 font-semibold"
+                className="hover:bg-gray-200 text-gray-700 gap-1 font-semibold"
               >
                 <TableCellsIcon className="w-4 h-4 mr-1" />
                 {`${filters?.find(f => f.filterId === viewId)?.name ?? "Default view name"}`}
@@ -402,7 +405,7 @@ export default function TablePage({
                 <Button
                   variant="ghost"
                   size="xs"
-                  className="hover:bg-gray-100 text-gray-700"
+                  className="hover:bg-gray-200 text-gray-700"
                 >
                   <EyeSlashIcon className="w-4 h-4 mr-1" />
                   Hide fields

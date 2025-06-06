@@ -30,6 +30,7 @@ export default function TableHeader({
 }: TableHeaderProps) {
   const headerSections: PopoverSectionProps[] = useMemo(() => [
     {
+      search: false,
       title: undefined,
       items: [
         {
@@ -155,6 +156,7 @@ export default function TableHeader({
                   key={index}
                   title={section.title}
                   items={section.items}
+                  search={section.search}
                 />
               ))}
             </Popover.Content>

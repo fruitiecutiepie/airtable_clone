@@ -148,6 +148,7 @@ export default function BaseList(
                                     }
                                   }
                                 ]}
+                                search={false}
                               />
                               <PopoverSection
                                 title={undefined}
@@ -162,6 +163,7 @@ export default function BaseList(
                                     }
                                   }
                                 ]}
+                                search={false}
                               />
                             </Popover.Content>
                           </Popover.Root>

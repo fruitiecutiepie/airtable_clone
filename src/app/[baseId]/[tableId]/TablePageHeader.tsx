@@ -8,10 +8,12 @@ import { BellIcon, PaintBrushIcon, UsersIcon } from "@heroicons/react/24/outline
 import { PopoverSection, type PopoverSectionProps } from '../../components/ui/PopoverSection';
 import React, { useMemo } from 'react';
 import { ButtonWithTooltip } from '../../components/ui/ButtonWithTooltip';
+import { redirect } from 'next/navigation';
 
 export default function TablePageHeader() {
   const accountSections: PopoverSectionProps[] = useMemo(() => [
     {
+      search: false,
       title: undefined,
       items: [
         {
@@ -145,6 +147,7 @@ export default function TablePageHeader() {
                   key={index}
                   title={section.title}
                   items={section.items}
+                  search={section.search}
                 />
               ))}
               <hr className="m-2 border-gray-200" />
@@ -154,10 +157,14 @@ export default function TablePageHeader() {
                 items={[
                   {
                     icon: ExitIcon,
-                    onClick: async () => await signOut(),
+                    onClick: async () => {
+                      await signOut();
+                      redirect('/');
+                    },
                     text: "Sign out"
                   }
                 ]}
+                search={false}
               />
             </Popover.Content>
           </Popover.Root>

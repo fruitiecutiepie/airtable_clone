@@ -1,5 +1,6 @@
-import React from "react"
+import React, { useMemo, useState } from "react"
 import Link from "next/link"
+import { SearchInput } from "./SearchInput"
 
 type PopoverItemLink = {
   icon?: React.ElementType<{ className?: string }>
@@ -35,15 +36,39 @@ export type PopoverItem = PopoverItemLink | PopoverItemButton | PopoverItemSepar
 export interface PopoverSectionProps {
   title: string | undefined
   items: PopoverItem[]
+  search: boolean,
+  searchPlaceholder?: string
 }
 
-export const PopoverSection: React.FC<PopoverSectionProps> = ({ title, items }) => {
+export const PopoverSection: React.FC<PopoverSectionProps> = ({
+  title,
+  items,
+  search,
+  searchPlaceholder = "Search...",
+}) => {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return items
+    return items.filter((item) => item.text?.toLowerCase().includes(searchQuery.toLowerCase()))
+  }, [items, searchQuery])
+
   return (
     <div className="flex flex-col">
+      {search && (
+        <div className="px-2">
+          <SearchInput
+            searchPlaceholder={searchPlaceholder}
+            value={searchQuery}
+            onChange={setSearchQuery}
+            size="sm"
+          />
+        </div>
+      )}
       {title && (
         <p className="m-2 text-gray-400 text-[11px]">{title}</p>
       )}
-      {items.map((item, i) => {
+      {filteredItems.map((item, i) => {
         if (item.separator) {
           return <hr key={i} className="m-2 border-gray-200" />
         }

@@ -18,7 +18,11 @@ export default function Page() {
   if (!session) {
     return (
       <div className="flex min-h-screen gap-2 flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
-        <p>Please sign in to view this page.</p>
+        <p
+          className="text-lg text-center mb-4"
+        >
+          Please sign in to continue.
+        </p>
         <Button
           onClick={() => signIn("google")}
           className="bg-blue-500 text-white hover:bg-blue-600"

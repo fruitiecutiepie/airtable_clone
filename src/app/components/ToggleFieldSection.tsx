@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useMemo } from "react"
 import { Switch } from "radix-ui"
-import { MagnifyingGlassIcon } from "@radix-ui/react-icons"
+import { SearchInput } from "./ui/SearchInput"
 
 export interface FieldItem {
   id: string
@@ -58,20 +58,12 @@ export function ToggleFieldSection({
   return (
     <div className={`w-full max-w-md p-2 bg-white border border-gray-200 rounded-lg shadow-sm ${className}`}>
       {/* Search Header */}
-      <div className="border-b border-gray-100">
-        <div className="relative flex items-center gap-3">
-          <div className="relative flex-1">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder={searchPlaceholder}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm border-0 focus:outline-none focus:ring-0 placeholder-gray-500"
-            />
-          </div>
-        </div>
-      </div>
+      <SearchInput
+        searchPlaceholder={searchPlaceholder}
+        value={searchQuery}
+        onChange={setSearchQuery}
+        size="sm"
+      />
 
       {/* Field List */}
       <div className="py-2">

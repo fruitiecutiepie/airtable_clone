@@ -8,10 +8,12 @@ import { BellIcon, CodeBracketIcon, GiftIcon, PaintBrushIcon, UsersIcon } from "
 import { PopoverSection, type PopoverSectionProps } from './ui/PopoverSection';
 import React, { useMemo } from 'react';
 import { ButtonWithTooltip } from './ui/ButtonWithTooltip';
+import { redirect } from 'next/navigation';
 
 export default function Header() {
   const helpSections: PopoverSectionProps[] = useMemo(() => [
     {
+      search: false,
       title: "Support",
       items: [
         {
@@ -37,6 +39,7 @@ export default function Header() {
       ]
     },
     {
+      search: false,
       title: "Education",
       items: [
         {
@@ -62,6 +65,7 @@ export default function Header() {
       ]
     },
     {
+      search: false,
       title: "Upgrade",
       items: [
         {
@@ -75,6 +79,7 @@ export default function Header() {
 
   const accountSections: PopoverSectionProps[] = useMemo(() => [
     {
+      search: false,
       title: undefined,
       items: [
         {
@@ -167,6 +172,7 @@ export default function Header() {
                     key={index}
                     title={section.title}
                     items={section.items}
+                    search={section.search}
                   />
                 ))}
               </Popover.Content>
@@ -244,16 +250,21 @@ export default function Header() {
                   key={index}
                   title={section.title}
                   items={section.items}
+                  search={section.search}
                 />
               ))}
               <hr className="m-2 border-gray-200" />
               <PopoverSection
                 key={'logout'}
+                search={false}
                 title={undefined}
                 items={[
                   {
                     icon: ExitIcon,
-                    onClick: async () => await signOut(),
+                    onClick: async () => {
+                      await signOut();
+                      redirect('/');
+                    },
                     text: "Sign out"
                   }
                 ]}
