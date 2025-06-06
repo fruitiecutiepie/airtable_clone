@@ -222,7 +222,9 @@ export default function TablePage({
 
   return (
     <div className="flex flex-col w-full h-full max-h-screen">
-      <TablePageHeader />
+      <TablePageHeader
+        baseId={baseId}
+      />
       <div
         className="flex flex-row justify-between items-center px-2 bg-purple-700"
       >

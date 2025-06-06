@@ -61,7 +61,6 @@ CREATE TABLE IF NOT EXISTS app_bases (
   name       TEXT         NOT NULL,
   created_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  CONSTRAINT uq_user_base UNIQUE(user_id, name)
 );
 CREATE INDEX ON app_bases(user_id);
 CREATE INDEX ON app_bases(user_id, base_id);
