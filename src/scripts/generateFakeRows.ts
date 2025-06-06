@@ -15,19 +15,22 @@ if (fs.existsSync(outPath)) {
 }
 
 // how many rows to generate
-const NUM_ROWS = 100_000;
+const NUM_ROWS = 100;
 
 // build the array
 const rows = Array.from({ length: NUM_ROWS }).map(() => ({
-  firstName: faker.person.firstName(),
+  first_name: faker.person.firstName(),
+  last_name: faker.person.lastName(),
   age: faker.number.int({ min: 18, max: 80 }),
   email: faker.internet.email(),
+  active: faker.datatype.boolean(),
+  joined_at: faker.date.past().toISOString(),
 }));
 
 // serialize as a TS module
 const fileContents = `
 // THIS FILE IS AUTO-GENERATED. DO NOT EDIT BY HAND.
-import type { TableRowValue } from "~/schemas";
+import type { TableRowValue } from "~/lib/schemas";
 
 export const fakeRows: Record<string, TableRowValue>[] = ${JSON.stringify(
   rows,
