@@ -13,8 +13,8 @@ import { AdjustmentsHorizontalIcon, ArrowsUpDownIcon, ArrowTopRightOnSquareIcon,
 import type { PageParams } from "~/lib/schemas";
 import { useSavedFilters } from "~/app/hooks/useSavedFilters";
 import { ToggleFieldSection, type FieldItem } from "~/app/components/ToggleFieldSection";
-import { SidebarContext } from "./[viewId]/layout";
 import { useColumns } from "~/app/hooks/useColumns";
+import { SidebarContext } from "./SidebarContext";
 
 interface TablePageProps {
   baseId: number,
@@ -36,8 +36,8 @@ export default function TablePage({
 
   const {
     tables,
-    tablesError,
-    tablesLoading,
+    // tablesError,
+    // tablesLoading,
     onAddTable,
     onUpdTable,
     onDelTable
@@ -45,8 +45,8 @@ export default function TablePage({
 
   const {
     columns,
-    columnsError,
-    columnsIsLoading,
+    // columnsError,
+    // columnsIsLoading,
 
     onAddCol,
     onUpdCol,
@@ -55,7 +55,7 @@ export default function TablePage({
 
   const {
     filters,
-    filtersError,
+    // filtersError,
     filtersLoading,
     onApplyFilter,
     onSetFilter,
@@ -204,10 +204,10 @@ export default function TablePage({
     setHiddenColumnIds(new Set(columns.map((c) => c.columnId)));
   }, [columns]);
 
-  const handleFieldAction = (fieldId: string, action: string) => {
-    console.log(`Action "${action}" triggered for field "${fieldId}"`)
-    // Handle field actions like edit, duplicate, delete
-  }
+  // const handleFieldAction = (fieldId: string, action: string) => {
+  //   console.log(`Action "${action}" triggered for field "${fieldId}"`)
+  //   // Handle field actions like edit, duplicate, delete
+  // }
 
   return (
     <div className="flex flex-col w-full h-full max-h-screen">
@@ -418,7 +418,7 @@ export default function TablePage({
                   onFieldToggle={handleColumnToggle}
                   onShowAll={handleShowAll}
                   onHideAll={handleHideAll}
-                  onFieldAction={handleFieldAction}
+                // onFieldAction={handleFieldAction}
                 />
               </Popover.Content>
             </Popover.Root>

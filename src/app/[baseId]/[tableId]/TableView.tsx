@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useReactTable, getCoreRowModel, flexRender, type ColumnDef, type CellContext, type RowData, getPaginationRowModel, type OnChangeFn, type SortingState } from "@tanstack/react-table";
+import { useReactTable, getCoreRowModel, flexRender, type ColumnDef, type CellContext, type RowData, type OnChangeFn, type SortingState } from "@tanstack/react-table";
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { PageParams, TableColumn, TableColumnDataType, TableRow, TableRowValue } from "~/lib/schemas";
 import TableHeader from "./TableHeader";
@@ -17,11 +17,13 @@ import { fetcher } from "~/lib/fetcher";
 import { api } from "~/trpc/react";
 
 declare module '@tanstack/react-table' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface TableMeta<TData extends RowData> {
     updateData: (rowIdx: string, columnId: string, value: TableRowValue) => Promise<void>;
     cellToFocus?: { rowIndex: number; columnId: string } | null;
     clearCellToFocus?: () => void;
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData extends RowData, TValue> {
     dataType: TableColumnDataType;
   }
@@ -219,7 +221,13 @@ export default function TableView({
   //   onDelRow,
   // } = useRows(baseId, tableId, { ...pageParams, search }, setPageParams);
 
-  const depsKey = [search, pageParams.sortCol, pageParams.sortDir, JSON.stringify(pageParams.filters)].join("|");
+  const depsKey = [
+    search,
+    pageParams.sortCol,
+    pageParams.sortDir,
+    JSON.stringify(pageParams.filters)
+  ].join("|");
+
   const {
     rows,
     totalRows,
@@ -258,7 +266,10 @@ export default function TableView({
 
   const onAdd100kRowsClick = useCallback(async () => {
     setIs100kRowsLoading(true);
-    const { jobId } = await fetcher<{ jobId: string }>(`/api/${baseId}/${tableId}/rows/100k`, { method: "POST" });
+    const { jobId } = await fetcher<{ jobId: string }>(
+      `/api/${baseId}/${tableId}/rows/100k`,
+      { method: "POST" }
+    );
     setJobId(jobId);
   }, [baseId, tableId]);
 
@@ -373,7 +384,6 @@ export default function TableView({
     // Users can then use the specific filter cells to set a new filter.
     setPageParams(p => {
       const newFilters = { ...p.filters };
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete newFilters[column.name];
       return {
         ...p,

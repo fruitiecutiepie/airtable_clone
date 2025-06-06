@@ -1,18 +1,7 @@
 "use client";
 
-import { createContext, useState, type ReactNode, type FC } from "react";
-
-interface SidebarContextValue {
-  sideBarOpen: boolean;
-  setSidebarOpen: (open: boolean) => void;
-}
-
-export const SidebarContext = createContext<SidebarContextValue>({
-  sideBarOpen: false,
-  setSidebarOpen: (open) => {
-    console.warn("setSidebarOpen called without a provider");
-  }
-});
+import { type FC, type ReactNode, useState } from "react";
+import { SidebarContext } from "../SidebarContext";
 
 const TableLayout: FC<{ children: ReactNode }> = ({ children }) => {
   const [sideBarOpen, setSidebarOpen] = useState(false);

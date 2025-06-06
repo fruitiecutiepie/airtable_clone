@@ -12,7 +12,7 @@ export const updColumn = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
-    const { tableId, columnId, name, dataType, position } = input;
+    const { columnId, name, dataType, position } = input;
     const client = await pool.connect();
     try {
       const res = await client.query<{ name: string; table_id: number }>(

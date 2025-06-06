@@ -7,7 +7,7 @@ import { pipeline } from "stream/promises";
 import { EventEmitter } from "events";
 import { jobs } from "~/app/api/events";
 
-export function startBulkLoad(
+function startBulkLoad(
   jobId: string,
   baseId: string,
   tableId: string

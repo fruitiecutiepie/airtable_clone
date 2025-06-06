@@ -4,7 +4,6 @@ import type React from "react"
 import { useState, useMemo } from "react"
 import { Switch } from "radix-ui"
 import { MagnifyingGlassIcon } from "@radix-ui/react-icons"
-import { QuestionMarkCircleIcon } from "@heroicons/react/24/outline"
 
 export interface FieldItem {
   id: string
@@ -18,7 +17,7 @@ export interface ToggleFieldSectionProps {
   onFieldToggle: (fieldId: string, enabled: boolean) => void
   onShowAll: () => void
   onHideAll: () => void
-  onFieldAction?: (fieldId: string, action: string) => void
+  // onFieldAction?: (fieldId: string, action: string) => void
   searchPlaceholder?: string
   className?: string
 }
@@ -37,7 +36,7 @@ export function ToggleFieldSection({
   onFieldToggle,
   onShowAll,
   onHideAll,
-  onFieldAction,
+  // onFieldAction,
   searchPlaceholder = "Find a field",
   className = "",
 }: ToggleFieldSectionProps) {
@@ -52,9 +51,9 @@ export function ToggleFieldSection({
     onFieldToggle(fieldId, enabled)
   }
 
-  const handleFieldAction = (fieldId: string, action: string) => {
-    onFieldAction?.(fieldId, action)
-  }
+  // const handleFieldAction = (fieldId: string, action: string) => {
+  //   onFieldAction?.(fieldId, action)
+  // }
 
   return (
     <div className={`w-full max-w-md p-2 bg-white border border-gray-200 rounded-lg shadow-sm ${className}`}>

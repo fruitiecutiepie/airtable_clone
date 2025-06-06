@@ -1,11 +1,11 @@
 "use client"
 
-import React, { useMemo } from 'react'
+import React from 'react'
 import { Button } from '../components/ui/Button'
 import { Avatar, Popover } from 'radix-ui'
 import { useBases } from '../hooks/useBases'
 import { EllipsisHorizontalIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { PopoverSection, type PopoverSectionProps } from '../components/ui/PopoverSection'
+import { PopoverSection } from '../components/ui/PopoverSection'
 import { Pencil1Icon } from '@radix-ui/react-icons'
 
 interface BaseListProps {
@@ -20,7 +20,7 @@ export default function BaseList(
     basesError,
     basesIsLoading,
 
-    onAddBase,
+    // onAddBase,
     addBaseStatus,
 
     onUpdBase,
