@@ -6,32 +6,32 @@ export function NumericFilterCell({
   colName,
   pageParams,
   setPageParams,
-  refetchRows,
 }: {
   colName: string;
   pageParams: PageParams,
   setPageParams: Dispatch<SetStateAction<PageParams>>,
-  refetchRows: () => Promise<unknown>;
 }) {
   const { gtInput, setGtInput, ltInput, setLtInput } =
-    useNumericColumnFilter(colName, pageParams, setPageParams, refetchRows);
+    useNumericColumnFilter(colName, pageParams, setPageParams);
 
   return (
-    <>
+    <div
+      className="flex"
+    >
       <input
         type="number"
         placeholder="> value"
         value={gtInput}
         onChange={e => setGtInput(e.target.value)}
-        className="border rounded px-2 py-1 w-full"
+        className="px-2 py-1 w-full border-r border-gray-200"
       />
       <input
         type="number"
         placeholder="< value"
         value={ltInput}
         onChange={e => setLtInput(e.target.value)}
-        className="border rounded px-2 py-1 w-full"
+        className="px-2 py-1 w-full"
       />
-    </>
+    </div>
   );
 }

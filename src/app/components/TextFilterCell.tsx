@@ -6,21 +6,22 @@ export function TextFilterCell({
   colName,
   pageParams,
   setPageParams,
-  refetchRows,
 }: {
   colName: string;
   pageParams: PageParams;
   setPageParams: Dispatch<SetStateAction<PageParams>>,
-  refetchRows: () => Promise<unknown>,
 }) {
   const { op, setOp, text, setText } =
-    useTextColumnFilter(colName, pageParams, setPageParams, refetchRows);
+    useTextColumnFilter(colName, pageParams, setPageParams);
 
   return (
-    <div className="flex gap-1 w-full">
+    <div className="flex gap-1 pl-1 h-max w-max">
       <select
         value={op}
-        className="border border-gray-700 text-gray-700 rounded px-2 py-1 outline-none focus:outline-none ring-0"
+        className="
+          border rounded border-gray-300 text-gray-700 
+          outline-none focus:outline-none ring-0
+        "
         onChange={e => setOp(e.target.value as FilterOperation)}
       >
         <option value="in">Contains</option>
@@ -36,7 +37,7 @@ export function TextFilterCell({
           placeholder="Filter…"
           value={text}
           onChange={e => setText(e.target.value)}
-          className="w-full border border-gray-700 text-gray-700 rounded px-2 py-1 outline-none focus:outline-none ring-0"
+          className="text-gray-700 outline-none focus:outline-none ring-0 w-full"
         />
       )}
     </div>
