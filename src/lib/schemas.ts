@@ -67,9 +67,11 @@ export const FilterSchema = z.object({
 export type Filter = z.infer<typeof FilterSchema>;
 
 export const SavedFilterSchema = z.object({
-  filter_id: z.number(),
+  filterId: z.number(),
   name: z.string(),
-  filters: z.record(FilterSchema),
+  filters: z
+    .record(z.array(FilterSchema))
+    .default({}),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -88,6 +90,6 @@ export const PageParamsSchema = z.object({
   cursor: CursorSchema.optional(),
   sortCol: z.string().optional(),
   sortDir: z.enum(['asc', 'desc']).optional(),
-  filters: z.record(FilterSchema).optional(),
+  filters: z.record(z.array(FilterSchema)).optional(),
 });
 export type PageParams = z.infer<typeof PageParamsSchema>;

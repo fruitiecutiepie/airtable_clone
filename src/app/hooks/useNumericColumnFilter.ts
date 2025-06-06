@@ -1,69 +1,64 @@
-import { useState, useEffect, type Dispatch, type SetStateAction } from "react";
-import type { PageParams } from "~/lib/schemas";
+import { useState, useEffect, type Dispatch, type SetStateAction, useCallback } from "react";
+import type { PageParams, Filter } from "~/lib/schemas";
 
 export function useNumericColumnFilter(
   colName: string,
   pageParams: PageParams,
   setPageParams: Dispatch<SetStateAction<PageParams>>,
-  refetchRows: () => Promise<unknown>,
 ) {
-  // derive initial values from pageParams.filters[colName]
-  const rawFilter = pageParams.filters?.[colName];
-  const initGt = rawFilter?.op === "gt" ? String(rawFilter.value) : "";
-  const initLt = rawFilter?.op === "lt" ? String(rawFilter.value) : "";
+  const getInitial = useCallback(() => {
+    const ext = pageParams.filters?.[colName];
+    let gt = "", lt = "";
+    const apply = (f: Filter) => {
+      if (f.op === "gt") gt = String(f.value);
+      if (f.op === "lt") lt = String(f.value);
+    };
+    if (Array.isArray(ext)) ext.forEach(apply);
+    else if (ext) apply(ext);
+    return { gt, lt };
+  }, [pageParams.filters, colName]);
 
-  const [gtInput, setGtInput] = useState(initGt);
-  const [ltInput, setLtInput] = useState(initLt);
+  const [gtInput, setGtInput] = useState(() => getInitial().gt);
+  const [ltInput, setLtInput] = useState(() => getInitial().lt);
 
-  // 1) Sync in whenever external filters change
+  // keep inputs in sync if user clicks “clear filter” externally
   useEffect(() => {
-    const f = pageParams.filters?.[colName];
-    const newGt = f?.op === "gt" ? String(f.value) : "";
-    const newLt = f?.op === "lt" ? String(f.value) : "";
+    const { gt, lt } = getInitial();
+    setGtInput(gt);
+    setLtInput(lt);
+  }, [getInitial]);
 
-    if (newGt !== gtInput) setGtInput(newGt);
-    if (newLt !== ltInput) setLtInput(newLt);
-  }, [pageParams.filters, colName, gtInput, ltInput]);
-
-  // 2) Debounced‐commit for “>” input
-  useEffect(() => {
-    const h = setTimeout(() => {
-      const cur = pageParams.filters?.[colName];
-      const curVal = cur?.op === "gt" ? String(cur.value) : "";
-      if (gtInput && gtInput !== curVal) {
-        setPageParams(p => ({
-          ...p,
-          cursor: undefined,
-          filters: {
-            ...(p.filters ?? {}),
-            [colName]: { op: "gt", value: gtInput || undefined }
-          }
-        }));
-        void refetchRows();
-      }
-    }, 300);
-    return () => clearTimeout(h);
-  }, [colName, gtInput, pageParams.filters, refetchRows, setPageParams]);
-
-  // 3) Debounced‐commit for “<” input
+  // debounce → write back _array_ of 0–2 filters
   useEffect(() => {
     const h = setTimeout(() => {
-      const cur = pageParams.filters?.[colName];
-      const curVal = cur?.op === "lt" ? String(cur.value) : "";
-      if (ltInput && ltInput !== curVal) {
-        setPageParams(p => ({
-          ...p,
-          cursor: undefined,
-          filters: {
-            ...(p.filters ?? {}),
-            [colName]: { op: "lt", value: ltInput || undefined }
-          }
-        }));
-        void refetchRows();
-      }
+      setPageParams(p => {
+        const arr: Filter[] = [];
+        if (gtInput !== "") arr.push({ op: "gt", value: parseFloat(gtInput) });
+        if (ltInput !== "") arr.push({ op: "lt", value: parseFloat(ltInput) });
+
+        // avoid needless updates
+        const old = p.filters?.[colName];
+        const oldArr = Array.isArray(old) ? old : old ? [old] : [];
+        if (
+          JSON.stringify(oldArr) === JSON.stringify(arr)
+        ) {
+          return p;
+        }
+
+        const newF: Record<string, Filter[]> = Object.fromEntries(
+          Object.entries(p.filters ?? {}).map(([key, value]) => [
+            key,
+            Array.isArray(value) ? value : [value],
+          ])
+        );
+        if (arr.length) newF[colName] = arr;
+        else delete newF[colName];
+
+        return { ...p, cursor: undefined, filters: newF };
+      });
     }, 300);
     return () => clearTimeout(h);
-  }, [colName, ltInput, pageParams.filters, refetchRows, setPageParams]);
+  }, [gtInput, ltInput, colName, setPageParams]);
 
   return { gtInput, setGtInput, ltInput, setLtInput };
 }

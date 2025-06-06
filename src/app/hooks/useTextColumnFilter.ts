@@ -1,68 +1,100 @@
-import { type Dispatch, type SetStateAction, useState, useEffect } from "react";
-import type { PageParams, FilterOperation } from "~/lib/schemas";
+import { type Dispatch, type SetStateAction, useState, useEffect, useCallback, useRef } from "react";
+import type { PageParams, FilterOperation, Filter } from "~/lib/schemas";
 
 export function useTextColumnFilter(
   colName: string,
   pageParams: PageParams,
   setPageParams: Dispatch<SetStateAction<PageParams>>,
-  refetchRows: () => Promise<unknown>,
 ) {
-  const raw = pageParams.filters?.[colName] ?? { op: "in", value: "" };
-  const initOp = raw.op;
-  const initText = raw.value != null ? String(raw.value) : "";
+  const initImmediateRef = useRef(false);
+  const initDebounceRef = useRef(false);
+  // pull out the first filter in the array (or none)
+  const getInitialFilterState = useCallback(() => {
+    const arr = pageParams.filters?.[colName];
+    const first = Array.isArray(arr) && arr.length > 0 ? arr[0] : undefined;
+    return {
+      op: first?.op ?? "in",
+      text: first?.value != null ? String(first.value) : "",
+    };
+  }, [pageParams.filters, colName]);
 
-  const [op, setOp] = useState<FilterOperation>(initOp);
-  const [text, setText] = useState<string>(initText);
+  const [op, setOp] = useState<FilterOperation>(() => getInitialFilterState().op);
+  const [text, setText] = useState<string>(() => getInitialFilterState().text);
 
-  // sync from external filters
+  // keep local op/text in sync if filters change externally
   useEffect(() => {
-    const f = pageParams.filters?.[colName] ?? { op: "in", value: "" };
-    const newOp = f.op;
-    const newText = f.value != null ? String(f.value) : "";
-    if (newOp !== op) setOp(newOp);
-    if (newText !== text) setText(newText);
-  }, [pageParams.filters, colName, op, text]);
+    const { op: extOp, text: extText } = getInitialFilterState();
+    setOp(o => extOp !== o ? extOp : o);
+    setText(t => extText !== t ? extText : t);
+  }, [getInitialFilterState]);
 
-  // commit op immediately
+  // write back immediately on op change (or text if null‐ops)
   useEffect(() => {
-    // clear text when null ops
-    if (["isnull", "isnotnull"].includes(op)) {
-      setText("");
+    // skip the very first render
+    if (!initImmediateRef.current) {
+      initImmediateRef.current = true;
+      return;
     }
-    setPageParams(p => ({
-      ...p,
-      cursor: undefined,
-      filters: {
-        ...(p.filters ?? {}),
-        [colName]: {
-          op,
-          value: ["isnull", "isnotnull"].includes(op) ? undefined : text,
-        }
-      }
-    }));
-    void refetchRows();
-  }, [colName, op, refetchRows, setPageParams, text]);
-
-  // debounce text commits
-  useEffect(() => {
-    if (["isnull", "isnotnull"].includes(op)) return;
-    const h = setTimeout(() => {
-      const cur = pageParams.filters?.[colName];
-      const curVal = cur?.value != null ? String(cur.value) : "";
-      if (text !== curVal) {
-        setPageParams(p => ({
+    const valueForFilter = ["isnull", "isnotnull"].includes(op) ? undefined : text;
+    setPageParams(p => {
+      const existing = p.filters?.[colName] ?? [];
+      if (
+        !existing[0]
+        || existing[0].op !== op
+        || existing[0].value !== valueForFilter
+      ) {
+        return {
           ...p,
           cursor: undefined,
           filters: {
             ...(p.filters ?? {}),
-            [colName]: { op, value: text || undefined }
+            [colName]: [{ op, value: valueForFilter }],
           }
-        }));
-        void refetchRows();
+        };
       }
+      return p;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [op, colName, setPageParams]);
+
+  // write back on text changes after debounce, except for null‐ops
+  useEffect(() => {
+    if (["isnull", "isnotnull"].includes(op)) return;
+    // skip the very first render
+    if (!initDebounceRef.current) {
+      initDebounceRef.current = true;
+      return;
+    }
+    const h = setTimeout(() => {
+      setPageParams(p => {
+        const existing = p.filters?.[colName] ?? [];
+        if (!existing[0]) {
+          return {
+            ...p,
+            cursor: undefined,
+            filters: {
+              ...(p.filters ?? {}),
+              [colName]: [{ op, value: text }] as Filter[],
+            }
+          };
+        }
+
+        const oldVal = existing.length === 1 ? existing[0].value : undefined;
+        if ((oldVal ?? "") === text) {
+          return p;
+        }
+        return {
+          ...p,
+          cursor: undefined,
+          filters: {
+            ...(p.filters ?? {}),
+            [colName]: [{ op, value: text }] as Filter[],
+          }
+        };
+      });
     }, 300);
     return () => clearTimeout(h);
-  }, [colName, op, pageParams.filters, refetchRows, setPageParams, text]);
+  }, [text, op, colName, setPageParams]);
 
   return { op, setOp, text, setText };
 }
