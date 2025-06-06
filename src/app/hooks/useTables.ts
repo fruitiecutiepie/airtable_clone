@@ -1,6 +1,6 @@
 import { api } from "~/trpc/react";
 import type { Table } from "~/lib/schemas";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { fetcher } from "~/lib/fetcher";
 import { useCallback } from "react";
 import { redirect } from "next/navigation";
@@ -8,16 +8,26 @@ import { redirect } from "next/navigation";
 export function useTables(
   baseId: number
 ) {
-  const { data: tables, error, isLoading } = useSWR<Table[], string>(
+  const { data: tables = [], error, isLoading } = useSWR<Table[], string>(
     `/api/${String(baseId)}/tables`,
     fetcher
   );
+  const { mutate } = useSWRConfig();
 
-  const addTable = api.table.addTable.useMutation();
-  const updTable = api.table.updTable.useMutation();
-  const delTable = api.table.delTable.useMutation();
+  const updTable = api.table.updTable.useMutation({
+    onSuccess: async () => void mutate(`/api/${String(baseId)}/tables`),
+    onError(error, variables, context) {
+      console.error(`Error updating table: ${error.message}`, variables, context);
+    },
+  });
+  const delTable = api.table.delTable.useMutation({
+    onSuccess: async () => void mutate(`/api/${String(baseId)}/tables`),
+    onError(error, variables, context) {
+      console.error(`Error deleting table: ${error.message}`, variables, context);
+    },
+  });
 
-  const addNewTable = useCallback(async () => {
+  const onAddTable = useCallback(async () => {
     const name = prompt("Table name?");
     if (!name) return;
     const now = new Date().toISOString();
@@ -45,14 +55,30 @@ export function useTables(
     redirect(`/${baseId}/${res.tableId}/${res.filterId}`);
   }, [baseId]);
 
+  const onUpdTable = useCallback(async (
+    tableId: number,
+    name: string
+  ) => {
+    if (!name) return;
+    await updTable.mutateAsync({
+      baseId,
+      tableId,
+      name,
+    });
+  }, [baseId, updTable]);
+
+  const onDelTable = useCallback(async (tableId: number) => {
+    await delTable.mutateAsync({ tableId });
+    redirect(`/${baseId}`);
+  }, [baseId, delTable]);
+
   return {
     tables: tables ?? [],
     tablesError: error,
     tablesLoading: isLoading,
-    addTable: addTable.mutateAsync,
-    updateTable: updTable.mutateAsync,
-    deleteTable: delTable.mutateAsync,
 
-    addNewTable
+    onAddTable,
+    onUpdTable,
+    onDelTable
   };
 }

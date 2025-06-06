@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { useCallback } from 'react'
+import useSWR, { useSWRConfig } from 'swr'
 import { fetcher } from '~/lib/fetcher'
 import type { Base, SavedFilter, Table } from '~/lib/schemas'
 import { api } from '~/trpc/react'
@@ -7,22 +8,55 @@ import { api } from '~/trpc/react'
 export function useBases(
   userId: string
 ) {
-  const { data: bases, status: basesStatus, refetch: refetchBases } =
-    api.base.getBases.useQuery({ userId });
-  const addBase = api.base.addBase.useMutation({ onSuccess: () => refetchBases() });
-  const updBase = api.base.updBase.useMutation({ onSuccess: () => refetchBases() })
-  const delBase = api.base.delBase.useMutation({ onSuccess: () => refetchBases() })
+  const { data: bases = [], error: basesError, isLoading: basesIsLoading } = useSWR<Base[], string>(
+    `/api/bases?userId=${userId}`,
+    fetcher
+  );
+  const { mutate } = useSWRConfig();
+  const addBase = api.base.addBase.useMutation({
+    onSuccess: async () => void mutate(`/api/bases?userId=${userId}`),
+    onError(error, variables, context) {
+      console.error(`Error adding base: ${error.message}`, variables, context);
+    }
+  });
+  const updBase = api.base.updBase.useMutation({
+    onSuccess: async () => void mutate(`/api/bases?userId=${userId}`),
+    onError(error, variables, context) {
+      console.error(`Error updating base: ${error.message}`, variables, context);
+    }
+  });
+  const delBase = api.base.delBase.useMutation({
+    onSuccess: async () => void mutate(`/api/bases?userId=${userId}`),
+    onError(error, variables, context) {
+      console.error(`Error deleting base: ${error.message}`, variables, context);
+    }
+  })
 
-  const updateBase = useCallback(async (base: Base) => {
-    await updBase.mutateAsync({ userId, base })
+  const onAddBase = useCallback(async (name: string) => {
+    await addBase.mutateAsync({
+      userId,
+      name,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    })
+  }, [addBase, userId])
+
+  const onUpdBase = useCallback(async (baseId: number, name: string) => {
+    await updBase.mutateAsync({
+      userId,
+      base: {
+        id: baseId,
+        userId,
+        name,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    })
   }, [updBase, userId])
 
-  const deleteBase = useCallback(async (baseId: number) => {
+  const onDelBase = useCallback(async (baseId: number) => {
     await delBase.mutateAsync({ userId, baseId })
   }, [delBase, userId])
-
-  const addTable = api.table.addTable.useMutation();
-  const setView = api.filter.setSavedFilter.useMutation();
 
   const addBaseOnClick = useCallback(async () => {
     const name = prompt('Base name?');
@@ -36,42 +70,62 @@ export function useBases(
   }, [addBase, userId])
 
   const baseOnClick = useCallback(async (baseId: number) => {
+    const baseExists = bases?.find(b => b.id === baseId);
+    if (!baseExists) {
+      alert("Error: The selected base no longer exists or could not be found. Please refresh.");
+      return;
+    }
+
     const tables = await fetcher<Table[]>(`/api/${String(baseId)}/tables`);
-    let firstTable = tables[0];
+    const firstTable = tables[0];
     if (!firstTable) {
-      const newTable = await addTable.mutateAsync({
-        baseId: Number(baseId),
-        name: "Table 1",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      const { tableId, filterId } = await fetcher<{
+        tableId: number;
+        filterId: string;
+      }>(`/api/${baseId}/tables`, {
+        method: "POST",
+        body: JSON.stringify({
+          name: "Table 1",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }),
       });
-      firstTable = newTable;
+
+      redirect(`/${baseId}/${tableId}/${filterId}`);
     }
 
-    const views = await fetcher<SavedFilter[]>(`/api/${String(baseId)}/${firstTable.id}/views`);
-    let firstView = views[0];
+    const views = await fetcher<SavedFilter[]>(`/api/${baseId}/${firstTable.id}/views`);
+    const firstView = views[0];
     if (!firstView) {
-      const newFilter = await setView.mutateAsync({
-        baseId: Number(baseId),
-        tableId: firstTable.id,
-        name: "Default View",
-        filters: {},
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      const { filterId } = await fetcher<{
+        tableId: number;
+        filterId: string;
+      }>(`/api/${baseId}/${firstTable.id}/views`, {
+        method: "POST",
+        body: JSON.stringify({
+          name: "Default View",
+          filters: {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }),
       });
-      firstView = newFilter;
+
+      redirect(`/${baseId}/${firstTable.id}/${filterId}`);
     }
 
-    redirect(`${String(baseId)}/${firstTable.id}/${firstView.filter_id}`);
-  }, [addTable, setView]);
+    redirect(`/${baseId}/${firstTable.id}/${firstView.filterId}`);
+  }, [bases]);
 
   return {
     bases,
-    basesStatus,
+    basesError,
+    basesIsLoading,
 
-    addBase,
-    updateBase,
-    deleteBase,
+    onAddBase,
+    addBaseStatus: addBase.status,
+
+    onUpdBase,
+    onDelBase,
 
     baseOnClick,
     addBaseOnClick
