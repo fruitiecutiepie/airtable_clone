@@ -3,14 +3,14 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Button } from "~/app/components/ui/Button";
 import { redirect } from "next/navigation";
-import { BarChartIcon, CalendarIcon, CaretDownIcon, CheckboxIcon, ImageIcon, LetterCaseCapitalizeIcon, ListBulletIcon, MagnifyingGlassIcon, Pencil1Icon, PlusIcon, QuestionMarkIcon, TrashIcon } from "@radix-ui/react-icons";
+import { BarChartIcon, CalendarIcon, CaretDownIcon, CheckboxIcon, ChevronRightIcon, FileIcon, FileTextIcon, ImageIcon, LetterCaseCapitalizeIcon, ListBulletIcon, MagnifyingGlassIcon, Pencil1Icon, PlusIcon, QuestionMarkIcon, TrashIcon } from "@radix-ui/react-icons";
 import TablePageHeader from "./TablePageHeader";
 import { useTables } from "../../hooks/useTables";
 import TableView from "./TableView";
 import { ContextMenu, DropdownMenu, Popover, Separator } from "radix-ui";
 import { PopoverSection, type PopoverItem, type PopoverSectionProps } from "~/app/components/ui/PopoverSection";
-import { AdjustmentsHorizontalIcon, ArrowsUpDownIcon, ArrowTopRightOnSquareIcon, Bars3Icon, EyeSlashIcon, HashtagIcon, SwatchIcon, TableCellsIcon } from "@heroicons/react/24/outline";
-import type { PageParams } from "~/lib/schemas";
+import { AdjustmentsHorizontalIcon, ArrowTopRightOnSquareIcon, Bars3Icon, BookOpenIcon, EyeSlashIcon, HashtagIcon, SwatchIcon, TableCellsIcon } from "@heroicons/react/24/outline";
+import type { PageParams, TableColumn } from "~/lib/schemas";
 import { useSavedFilters } from "~/app/hooks/useSavedFilters";
 import { ToggleFieldSection, type FieldItem } from "~/app/components/ToggleFieldSection";
 import { useColumns } from "~/app/hooks/useColumns";
@@ -210,6 +210,15 @@ export default function TablePage({
   //   console.log(`Action "${action}" triggered for field "${fieldId}"`)
   //   // Handle field actions like edit, duplicate, delete
   // }
+
+  const onSortColumn = useCallback((column: TableColumn, direction: "asc" | "desc" | undefined) => {
+    setPageParams(p => ({
+      ...p,
+      cursor: undefined, // Reset cursor when sorting changes
+      sortCol: column.name,
+      sortDir: direction,
+    }));
+  }, [setPageParams]);
 
   return (
     <div className="flex flex-col w-full h-full max-h-screen">
@@ -426,22 +435,12 @@ export default function TablePage({
               </Popover.Content>
             </Popover.Root>
           </div>
-          <Button
-            variant="ghost"
-            size="xs"
-            className="hover:bg-gray-100 text-gray-700"
-          >
-            <AdjustmentsHorizontalIcon className="w-4 h-4 mr-1" />
-            Filter
-          </Button>
-          <Button
-            variant="ghost"
-            size="xs"
-            className="hover:bg-gray-100 text-gray-700"
-          >
-            <ArrowsUpDownIcon className="w-4 h-4 mr-1" />
-            Sort
-          </Button>
+          <div>
+            <TableOptionsSort
+              columns={columns}
+              onSortColumn={onSortColumn}
+            />
+          </div>
           <Button
             variant="ghost"
             size="xs"
@@ -701,6 +700,7 @@ export default function TablePage({
               onAddCol={onAddCol}
               onUpdCol={onUpdCol}
               onDelCol={onDelCol}
+              onSortColumn={onSortColumn}
             />
           </div>
         </div>

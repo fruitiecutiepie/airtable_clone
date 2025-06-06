@@ -173,6 +173,7 @@ interface TableViewProps {
   onAddCol: (name: string, dataType: TableColumnDataType) => Promise<void>;
   onUpdCol: (columnId: number, newName: string) => Promise<void>;
   onDelCol: (columnId: number) => Promise<void>;
+  onSortColumn: (column: TableColumn, direction: "asc" | "desc" | undefined) => void;
 }
 
 export default function TableView({
@@ -192,6 +193,7 @@ export default function TableView({
   onAddCol,
   onUpdCol,
   onDelCol,
+  onSortColumn
 }: TableViewProps) {
   const [cellToFocus, setCellToFocus] = useState<{
     rowIndex: number;
@@ -359,15 +361,6 @@ export default function TableView({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
-
-  const onSortColumn = useCallback((column: TableColumn, direction: "asc" | "desc" | undefined) => {
-    setPageParams(p => ({
-      ...p,
-      cursor: undefined, // Reset cursor when sorting changes
-      sortCol: column.name,
-      sortDir: direction,
-    }));
-  }, [setPageParams]);
 
   const onToggleSortColumn = useCallback((column: TableColumn) => {
     const isSorted = pageParams.sortCol === column.name;
