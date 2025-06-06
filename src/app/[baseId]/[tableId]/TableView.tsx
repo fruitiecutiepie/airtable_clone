@@ -5,9 +5,9 @@ import { useReactTable, getCoreRowModel, flexRender, type ColumnDef, type CellCo
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { PageParams, TableColumn, TableColumnDataType, TableRow, TableRowValue } from "~/lib/schemas";
 import TableHeader from "./TableHeader";
-import { MagnifyingGlassIcon, PlusIcon } from "@radix-ui/react-icons";
-import { ContextMenu } from "radix-ui";
-import { TrashIcon } from "@heroicons/react/24/outline";
+import { CheckboxIcon, LetterCaseCapitalizeIcon, MagnifyingGlassIcon, PlusIcon } from "@radix-ui/react-icons";
+import { ContextMenu, Popover } from "radix-ui";
+import { CalendarIcon, HashtagIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { NumericFilterCell } from "~/app/components/NumericFilterCell";
 import { TextFilterCell } from "~/app/components/TextFilterCell";
 import { DateRangeFilterCell } from "~/app/components/DateRangeFilterCell";
@@ -15,6 +15,7 @@ import { Button } from "~/app/components/ui/Button";
 import { useRowsStream, type EventSourceMessage } from "~/app/hooks/useRowsStream";
 import { fetcher } from "~/lib/fetcher";
 import { api } from "~/trpc/react";
+import { PopoverSection, type PopoverSectionProps } from "~/app/components/ui/PopoverSection";
 
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -628,6 +629,36 @@ export default function TableView({
     }
   }, [columns, onAddRow]);
 
+  const addColumnOptionsSection: PopoverSectionProps[] = useMemo(() => [
+    {
+      search: true,
+      searchPlaceholder: "Find a field type",
+      title: undefined,
+      items: [
+        {
+          text: "Text",
+          icon: LetterCaseCapitalizeIcon,
+          onClick: () => onAddCol("Label", "text"),
+        },
+        {
+          text: "Numeric",
+          icon: HashtagIcon,
+          onClick: () => onAddCol("Number", "numeric"),
+        },
+        {
+          text: "Checkbox",
+          icon: CheckboxIcon,
+          onClick: () => onAddCol("Done", "boolean"),
+        },
+        {
+          text: "Date",
+          icon: CalendarIcon,
+          onClick: () => onAddCol("Date", "date"),
+        },
+      ]
+    },
+  ], [onAddCol]);
+
   if (streamError) {
     return (
       <div className="flex items-center justify-center w-full h-full text-red-500">
@@ -862,27 +893,48 @@ export default function TableView({
                   <div
                     className="flex flex-col"
                   >
-                    <div
-                      className="
-                        flex-none top-0 right-0 flex items-center h-8 bg-stone-100
-                        border-b border-r border-gray-300 cursor-pointer hover:bg-stone-200 z-10
-                      "
-                      onClick={onAddColumnClick}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={async e => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          await onAddColumnClick();
-                        }
-                      }}
-                      aria-label="Add new column"
-                    >
-                      <div
-                        className="flex-none flex items-center justify-center h-full w-48"
+                    <Popover.Root>
+                      <Popover.Trigger
+                        asChild
+                        className={`
+                          inline-flex items-center justify-center cursor-pointer pr-5
+                        `}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
                       >
-                        <PlusIcon className="w-4 h-4 text-gray-600" />
-                      </div>
-                    </div>
+                        <div
+                          className="
+                            flex-none top-0 right-0 flex items-center h-8 bg-stone-100
+                            border-b border-r border-gray-300 cursor-pointer hover:bg-stone-200 z-10
+                          "
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Add new column"
+
+                        >
+                          <div
+                            className="flex-none flex items-center justify-center h-full w-48"
+                          >
+                            <PlusIcon className="w-4 h-4 text-gray-600" />
+                          </div>
+                        </div>
+                      </Popover.Trigger>
+                      <Popover.Content
+                        sideOffset={3}
+                        align="end"
+                        className="bg-white shadow-xl font-normal px-3 py-4 rounded-lg w-64 border border-gray-300 text-sm text-gray-700 z-20"
+                      >
+                        {addColumnOptionsSection.map((section, index) => (
+                          <PopoverSection
+                            key={index}
+                            title={section.title}
+                            items={section.items}
+                            search={section.search}
+                          />
+                        ))}
+                      </Popover.Content>
+                    </Popover.Root>
                     <div
                       className="
                         flex-none top-0 right-0 flex items-center h-8 bg-purple-700 text-gray-50
