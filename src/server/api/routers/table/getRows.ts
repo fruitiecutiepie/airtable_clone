@@ -7,7 +7,6 @@ import {
   type TableRow,
   type TableColumnDataType,
   type TableRowValue,
-  type Filter,
 } from "~/lib/schemas";
 import { publicProcedure } from "../../trpc";
 import { TRPCError } from "@trpc/server";
@@ -19,7 +18,7 @@ export const getRows = publicProcedure
       query: z.string().optional(),
       limit: z.number().min(1).max(5000).default(1000),
       cursor: CursorSchema.optional(),
-      sortCol: z.string().default("id"),
+      sortCol: z.string().default("row_id"),
       sortDir: z.enum(["asc", "desc"]).default("asc"),
       filters: z
         .record(z.array(FilterSchema))
@@ -84,25 +83,45 @@ export const getRows = publicProcedure
             !["isnull", "isnotnull"].includes(cond.op)
           ) continue;
 
+          if ((cond.op === "in" || cond.op === "nin") && cond.value === "") {
+            continue;
+          }
+
           const path = `(data->>'${col}')`;
           switch (cond.op) {
             case "lt":
-              where.push(`${path}::numeric < $${idx}`);
+              where.push(`${path}::${(cond.value as unknown)
+                instanceof Date || typeof cond.value === "string"
+                ? `timestamp <= $${idx}`
+                : `numeric < $${idx}`}
+              `);
               params.push(cond.value);
               idx++;
               break;
             case "gt":
-              where.push(`${path}::numeric > $${idx}`);
+              where.push(`${path}::${(cond.value as unknown)
+                instanceof Date || typeof cond.value === "string"
+                ? `timestamp >= $${idx}`
+                : `numeric > $${idx}`}
+              `);
               params.push(cond.value);
               idx++;
               break;
             case "eq":
-              where.push(`${path} = $${idx}`);
+              if (typeof cond.value === "boolean") {
+                where.push(`${path}::boolean = $${idx}`);
+              } else {
+                where.push(`${path} = $${idx}`);
+              }
               params.push(cond.value);
               idx++;
               break;
             case "neq":
-              where.push(`${path} <> $${idx}`);
+              if (typeof cond.value === "boolean") {
+                where.push(`${path}::boolean <> $${idx}`);
+              } else {
+                where.push(`${path} <> $${idx}`);
+              }
               params.push(cond.value);
               idx++;
               break;
@@ -127,15 +146,24 @@ export const getRows = publicProcedure
       }
 
       if (!query && cursor) {
-        const path = `(data->>'${sortCol}')`;
-        where.push(
-          `(${path}, row_id) > ($${idx}, $${idx + 1})`
-        );
-        params.push(cursor.lastValue, cursor.lastId);
-        idx += 2;
+        if (sortCol === "row_id") {
+          where.push(`row_id > $${idx}`);
+          params.push(cursor.lastId);
+          idx++;
+        } else {
+          where.push(
+            `( (data->>'${sortCol}')::text, row_id ) > ( $${idx}, $${idx + 1} )`
+          );
+          params.push(cursor.lastValue, cursor.lastId);
+          idx += 2;
+        }
       }
 
       const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+      const orderExpr =
+        sortCol === "row_id"
+          ? `row_id ${sortDir}`
+          : `(data->>'${sortCol}')::text ${sortDir}, row_id ${sortDir}`
 
       // 4) fetch rows
       const res = await client.query<{
@@ -154,10 +182,7 @@ export const getRows = publicProcedure
           COUNT(*) OVER() AS total_count
         FROM app_rows
         ${whereSql}
-        ORDER BY ${query
-          ? `row_id ASC`
-          : `(data->>'${sortCol}')::text ${sortDir}, row_id ${sortDir}`
-        }
+        ORDER BY ${orderExpr}
         LIMIT ${limit + 1}
         `,
         params
@@ -192,12 +217,17 @@ export const getRows = publicProcedure
         `Fetched ${validated.length} rows for table ${tableId}, hasMore: ${hasMore}`
       );
 
+      const lastValue =
+        sortCol === "row_id"
+          ? validated[validated.length - 1]?.rowId
+          : validated[validated.length - 1]?.data[sortCol];
+
       return {
         rows: validated,
         nextCursor: hasMore
           ? {
             lastId: validated[validated.length - 1]?.rowId,
-            lastValue: validated[validated.length - 1]?.data[sortCol],
+            lastValue,
           }
           : undefined,
         totalRows:

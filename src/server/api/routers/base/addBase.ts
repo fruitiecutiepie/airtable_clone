@@ -13,42 +13,31 @@ export const addBase = publicProcedure
   }))
   .output(BaseSchema)
   .mutation(async ({ input }) => {
-    const client = await pool.connect();
-    try {
-      const insertResult = await client.query<{
-        base_id: number
-      }>(
-        `
-        INSERT INTO app_bases(
-          user_id, name, created_at, updated_at
-        )
-        VALUES($1, $2, $3, $4)
-        RETURNING base_id
-        `,
-        [input.userId, input.name, input.createdAt, input.updatedAt]
-      );
-      if (insertResult.rowCount === 0 || !insertResult.rows[0]) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to create base',
-        });
-      }
-      const baseId = insertResult.rows[0].base_id;
-
-      return {
-        id: baseId,
-        userId: input.userId,
-        name: input.name,
-        createdAt: input.createdAt,
-        updatedAt: input.updatedAt
-      };
-    } catch (err: unknown) {
-      console.error('Error adding base:', err);
+    const insertResult = await pool.query<{
+      base_id: number
+    }>(
+      `
+      INSERT INTO app_bases(
+        user_id, name, created_at, updated_at
+      )
+      VALUES($1, $2, $3, $4)
+      RETURNING base_id
+      `,
+      [input.userId, input.name, input.createdAt, input.updatedAt]
+    );
+    if (insertResult.rowCount === 0 || !insertResult.rows[0]) {
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
-        message: err instanceof Error ? err.message : String(err),
+        message: 'Failed to create base',
       });
-    } finally {
-      client.release();
     }
+    const baseId = insertResult.rows[0].base_id;
+
+    return {
+      id: baseId,
+      userId: input.userId,
+      name: input.name,
+      createdAt: input.createdAt,
+      updatedAt: input.updatedAt
+    };
   });

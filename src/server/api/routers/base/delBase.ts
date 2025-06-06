@@ -12,29 +12,18 @@ export const delBase = publicProcedure
   )
   .output(z.void())
   .mutation(async ({ input }) => {
-    const client = await pool.connect();
-    try {
-      const delTable = await client.query(
-        `
-        DELETE FROM app_bases
-        WHERE base_id = $1
-          AND user_id = $2
-        `,
-        [input.baseId, input.userId]
-      );
-      if (delTable.rowCount === 0) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Base not found or you do not have permission to delete it',
-        });
-      }
-    } catch (err: unknown) {
-      console.error('Error deleting base:', err);
+    const delTable = await pool.query(
+      `
+      DELETE FROM app_bases
+      WHERE base_id = $1
+        AND user_id = $2
+      `,
+      [input.baseId, input.userId]
+    );
+    if (delTable.rowCount === 0) {
       throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: err instanceof Error ? err.message : String(err),
+        code: 'NOT_FOUND',
+        message: 'Base not found or you do not have permission to delete it',
       });
-    } finally {
-      client.release();
     }
   });
