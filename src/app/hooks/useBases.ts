@@ -59,14 +59,14 @@ export function useBases(
   }, [delBase, userId])
 
   const addBaseOnClick = useCallback(async () => {
-    const name = prompt('Base name?');
-    if (!name) return;
-    await addBase.mutateAsync({
+    const name = "Untitled Base";
+    const newBase = await addBase.mutateAsync({
       userId,
       name,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     })
+    redirect(`/${newBase.id}`);
   }, [addBase, userId])
 
   const baseOnClick = useCallback(async (baseId: number) => {

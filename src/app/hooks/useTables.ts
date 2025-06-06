@@ -28,8 +28,7 @@ export function useTables(
   });
 
   const onAddTable = useCallback(async () => {
-    const name = prompt("Table name?");
-    if (!name) return;
+    const name = `Table ${tables.length + 1}`;
     const now = new Date().toISOString();
 
     const data = {
@@ -53,7 +52,7 @@ export function useTables(
     );
 
     redirect(`/${baseId}/${res.tableId}/${res.filterId}`);
-  }, [baseId]);
+  }, [baseId, tables.length]);
 
   const onUpdTable = useCallback(async (
     tableId: number,
