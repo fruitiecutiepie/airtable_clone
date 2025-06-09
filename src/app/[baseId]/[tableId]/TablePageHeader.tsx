@@ -2,7 +2,7 @@
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Avatar, Popover, Separator } from "radix-ui";
+import { Avatar, Popover } from "radix-ui";
 import { CaretDownIcon, CountdownTimerIcon, ExitIcon, PersonIcon, QuestionMarkCircledIcon } from '@radix-ui/react-icons';
 import { BellIcon, PaintBrushIcon, TrashIcon, UserGroupIcon, UsersIcon } from "@heroicons/react/24/outline"
 import { PopoverSection, type PopoverSectionProps } from '../../components/ui/PopoverSection';

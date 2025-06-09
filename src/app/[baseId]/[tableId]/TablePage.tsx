@@ -3,16 +3,15 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Button } from "~/app/components/ui/Button";
 import { redirect } from "next/navigation";
-import { BarChartIcon, CalendarIcon, CaretDownIcon, CheckboxIcon, ChevronRightIcon, FileIcon, FileTextIcon, ImageIcon, LetterCaseCapitalizeIcon, ListBulletIcon, MagnifyingGlassIcon, Pencil1Icon, PlusIcon, QuestionMarkIcon, TrashIcon } from "@radix-ui/react-icons";
+import { BarChartIcon, CalendarIcon, CaretDownIcon, ChevronRightIcon, FileIcon, FileTextIcon, ImageIcon, ListBulletIcon, MagnifyingGlassIcon, Pencil1Icon, PlusIcon, TrashIcon } from "@radix-ui/react-icons";
 import TablePageHeader from "./TablePageHeader";
 import { useTables } from "../../hooks/useTables";
 import TableView from "./TableView";
 import { ContextMenu, DropdownMenu, Popover, Separator } from "radix-ui";
 import { PopoverSection, type PopoverItem, type PopoverSectionProps } from "~/app/components/ui/PopoverSection";
-import { AdjustmentsHorizontalIcon, ArrowTopRightOnSquareIcon, Bars3Icon, BookOpenIcon, EyeSlashIcon, HashtagIcon, SwatchIcon, TableCellsIcon } from "@heroicons/react/24/outline";
+import { ArrowTopRightOnSquareIcon, Bars3Icon, BookOpenIcon, SwatchIcon, TableCellsIcon } from "@heroicons/react/24/outline";
 import type { PageParams, TableColumn } from "~/lib/schemas";
 import { useSavedFilters } from "~/app/hooks/useSavedFilters";
-import { ToggleFieldSection, type FieldItem } from "~/app/components/ToggleFieldSection";
 import { useColumns } from "~/app/hooks/useColumns";
 import { SidebarContext } from "./SidebarContext";
 import Image from "next/image";

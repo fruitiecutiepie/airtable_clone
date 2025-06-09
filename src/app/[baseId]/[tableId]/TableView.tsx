@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useReactTable, getCoreRowModel, flexRender, type ColumnDef, type CellContext, type RowData, type OnChangeFn, type SortingState } from "@tanstack/react-table";
-import { useVirtualizer } from '@tanstack/react-virtual';
-import type { PageParams, TableColumn, TableColumnDataType, TableRow, TableRowValue } from "~/lib/schemas";
-import TableHeader from "./TableHeader";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { flexRender } from "@tanstack/react-table";
+import type { PageParams, TableColumn, TableColumnDataType } from "~/lib/schemas";
 import { CheckboxIcon, LetterCaseCapitalizeIcon, MagnifyingGlassIcon, PlusIcon } from "@radix-ui/react-icons";
 import { ContextMenu, Popover } from "radix-ui";
 import { CalendarIcon, HashtagIcon, TrashIcon } from "@heroicons/react/24/outline";
@@ -12,150 +10,10 @@ import { NumericFilterCell } from "~/app/components/NumericFilterCell";
 import { TextFilterCell } from "~/app/components/TextFilterCell";
 import { DateRangeFilterCell } from "~/app/components/DateRangeFilterCell";
 import { Button } from "~/app/components/ui/Button";
-import { useRowsStream, type EventSourceMessage } from "~/app/hooks/useRowsStream";
-import { fetcher } from "~/lib/fetcher";
-import { api } from "~/trpc/react";
+import { useRowsStream } from "~/app/hooks/useRowsStream";
 import { PopoverSection, type PopoverSectionProps } from "~/app/components/ui/PopoverSection";
-
-declare module '@tanstack/react-table' {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface TableMeta<TData extends RowData> {
-    updateData: (rowIdx: string, columnId: string, value: TableRowValue) => Promise<void>;
-    cellToFocus?: { rowIndex: number; columnId: string } | null;
-    clearCellToFocus?: () => void;
-  }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface ColumnMeta<TData extends RowData, TValue> {
-    dataType: TableColumnDataType;
-  }
-}
-
-const EditableCell = (props: CellContext<TableRow, TableRowValue>) => {
-  const { getValue, row, column, table } = props;
-
-  const initialValue = getValue();
-  const dataType = column.columnDef.meta?.dataType;
-
-  const [value, setValue] = useState<TableRowValue>(initialValue);
-
-  const cellToFocus = table.options.meta?.cellToFocus;
-  const clearCellToFocus = table.options.meta?.clearCellToFocus;
-
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (
-      cellToFocus?.rowIndex === row.index &&
-      cellToFocus?.columnId === column.id
-    ) {
-      inputRef.current?.focus();
-      clearCellToFocus?.();
-    }
-  }, [cellToFocus, row.index, column.id, clearCellToFocus]);
-
-  const onBlur = async () => {
-    if (value === initialValue) return;
-    let newValue: TableRowValue | undefined = value;
-    switch (dataType) {
-      case "numeric":
-        if (isNaN(Number(value))) {
-          setValue(initialValue);
-          return;
-        }
-        newValue = value === "" ? undefined : Number(value);
-        break;
-      case "text":
-        if (typeof value !== "string") {
-          setValue(initialValue);
-          return;
-        }
-        newValue = value.trim() === "" ? undefined : value.trim();
-        break;
-      case "boolean":
-        if (typeof value !== "boolean") {
-          setValue(initialValue);
-          return;
-        }
-        newValue = value;
-        break;
-      case "date":
-        if (typeof value !== "string" || isNaN(Date.parse(value))) {
-          setValue(initialValue);
-          return;
-        }
-        newValue = value === "" ? undefined : new Date(value).toISOString();
-        break;
-      default:
-        console.warn(`Unsupported data type: ${dataType}`);
-        return;
-    }
-
-    await table.options.meta?.updateData(
-      row.original.rowId,
-      column.id,
-      newValue
-    );
-  };
-
-  useEffect(() => {
-    setValue(initialValue);
-  }, [initialValue]);
-
-  if (dataType === "boolean") {
-    return (
-      <input
-        ref={inputRef}
-        type="checkbox"
-        checked={Boolean(value)}
-        onChange={e => setValue(e.target.checked)}
-        onBlur={onBlur}
-        className="w-full h-full p-0 m-0 border-none outline-none bg-transparent box-border text-xs"
-      />
-    );
-  }
-
-  if (dataType === "date") {
-    // strip ISO to yyyy-MM-dd
-    const dateStr = typeof value === "string" ? value.slice(0, 10) : "";
-    return (
-      <input
-        ref={inputRef}
-        type="date"
-        value={dateStr}
-        onChange={e => setValue(e.target.value)} // keep "yyyy-MM-dd"
-        onBlur={onBlur}                          // onBlur will toISOString()
-        className="w-full h-full p-0 m-0 border-none outline-none bg-transparent box-border text-xs"
-      />
-    );
-  }
-
-  return (
-    <input
-      ref={inputRef}
-      type={dataType === "numeric" ? "number" : "text"}
-      value={value != null ? String(value) : ""}
-      onChange={e => setValue(e.target.value)}
-      onBlur={onBlur}
-      className="w-full h-full p-0 m-0 border-none outline-none bg-transparent box-border text-xs"
-    />
-  );
-};
-
-function useSkipper() {
-  const shouldSkipRef = React.useRef(true)
-  const shouldSkip = shouldSkipRef.current
-
-  // Wrap a function with this to skip a pagination reset temporarily
-  const skip = React.useCallback(() => {
-    shouldSkipRef.current = false
-  }, [])
-
-  React.useEffect(() => {
-    shouldSkipRef.current = true
-  })
-
-  return [shouldSkip, skip] as const
-}
+import { useTableSearch } from "~/app/hooks/useTableSearch";
+import { useTanstackTable } from "~/app/hooks/useTanstackTable";
 
 interface TableViewProps {
   baseId: number;
@@ -168,9 +26,9 @@ interface TableViewProps {
 
   onSaveFilterClick: () => Promise<void>;
 
+  columns: TableColumn[];
   hiddenColumnIds: Set<number>;
   handleColumnToggle: (columnId: string, hidden: boolean) => void;
-  columns: TableColumn[];
   onAddCol: (name: string, dataType: TableColumnDataType) => Promise<void>;
   onUpdCol: (columnId: number, newName: string) => Promise<void>;
   onDelCol: (columnId: number) => Promise<void>;
@@ -188,42 +46,14 @@ export default function TableView({
 
   onSaveFilterClick,
 
+  columns,
   hiddenColumnIds,
   handleColumnToggle,
-  columns,
   onAddCol,
   onUpdCol,
   onDelCol,
   onSortColumn
 }: TableViewProps) {
-  const [cellToFocus, setCellToFocus] = useState<{
-    rowIndex: number;
-    columnId: string;
-  } | undefined>(undefined);
-  const [triggerFocusOnNewRow, setTriggerFocusOnNewRow] = useState(false);
-  const previousRowCountRef = useRef(0);
-
-  // const {
-  //   infRows,
-  //   infRowsHasNextPage,
-  //   infRowsIsLoading,
-  //   infRowsIsFetching,
-  //   infRowsFetchNextPage,
-  //   infRowsRefetch,
-
-  //   flatRows,
-  //   // nextCursor,
-  //   totalRows,
-
-  //   onAdd100kRowsClick,
-  //   streamLoading,
-  //   streamLoadingCount,
-
-  //   onAddRow,
-  //   onUpdRow,
-  //   onDelRow,
-  // } = useRows(baseId, tableId, { ...pageParams, search }, setPageParams);
-
   const depsKey = [
     search,
     pageParams.sortCol,
@@ -234,49 +64,52 @@ export default function TableView({
   const {
     rows,
     totalRows,
-    setTotalRows,
     loading: streamLoading,
     error: streamError,
     fetchNextPage,
-    reset
+
+    onAddRow,
+    onUpdRow,
+    onDelRow,
+    onAdd100kRowsClick,
+    is100kRowsLoading,
   } = useRowsStream(baseId, tableId, search, pageParams, depsKey);
   const loadedRows = useMemo(() => rows.length, [rows.length]);
 
-  const addRows = api.table.addRows.useMutation();
-  const updRow = api.table.updRow.useMutation();
-  const delRow = api.table.delRow.useMutation();
+  const {
+    liveSearchInput,
+    setLiveSearchInput
+  } = useTableSearch(
+    search,
+    setSearch,
+    setPageParams
+  );
 
-  const onAddRow = useCallback(async (data: Record<string, TableRowValue>) => {
-    await addRows.mutateAsync({ tableId, rows: [data], createdAt: new Date().toISOString() });
-    reset();
-  }, [addRows, tableId, reset]);
+  const loader = useRef<HTMLDivElement>(null);
 
-  const onUpdRow = useCallback(async (
-    rowId: string,
-    data: Record<string, TableRowValue>
-  ) => {
-    await updRow.mutateAsync({ tableId, rowId, data });
-    await fetchNextPage();
-  }, [updRow, tableId, fetchNextPage]);
+  const {
+    rows: tableModelRows,
+    colsLength,
+    table,
+    rowVirtualizer,
+    tableContainerRef,
+    onFilterColumn,
+    setTriggerFocusOnNewRow,
+  } = useTanstackTable(
+    rows,
+    columns,
 
-  const onDelRow = useCallback(async (rowId: string) => {
-    await delRow.mutateAsync({ tableId, rowId });
-    await fetchNextPage();
-  }, [delRow, tableId, fetchNextPage]);
+    pageParams,
+    setPageParams,
 
-  const [is100kRowsLoading, setIs100kRowsLoading] = useState(false);
-  const [jobId, setJobId] = useState<string | undefined>(undefined);
+    hiddenColumnIds,
+    handleColumnToggle,
 
-  const onAdd100kRowsClick = useCallback(async () => {
-    setIs100kRowsLoading(true);
-    const { jobId } = await fetcher<{ jobId: string }>(
-      `/api/${baseId}/${tableId}/rows/100k`,
-      { method: "POST" }
-    );
-    setJobId(jobId);
-  }, [baseId, tableId]);
-
-  const latestCountProgressRef = useRef<number>(0);
+    onUpdRow,
+    onUpdCol,
+    onDelCol,
+    onSortColumn
+  )
   // const canUpdateRef = useRef<boolean>(true);
 
   // useEffect(() => {
@@ -310,124 +143,6 @@ export default function TableView({
   // }, [jobId, setTotalRows, setStreamLoading]);
 
   useEffect(() => {
-    latestCountProgressRef.current = 0;
-
-    if (!jobId) return;
-
-    const initialTotal = totalRows;
-
-    let rafId: number | undefined = undefined;
-    const flushToState = () => {
-      setTotalRows(latestCountProgressRef.current + initialTotal);
-      rafId = undefined;
-    };
-
-    console.log(`Starting EventSource for jobId: ${jobId}`);
-    const es = new EventSource(`/api/events/${jobId}`);
-    es.onmessage = (e) => {
-      const msg = JSON.parse(e.data as string) as EventSourceMessage;
-      if (msg.type === "progress" && typeof msg.rows === "number") {
-        console.log(`EventSource progress: ${msg.rows} rows`);
-        // keep updating the ref (no re-render yet)
-        latestCountProgressRef.current = msg.rows;
-        // schedule exactly one rAF per frame
-        rafId ??= requestAnimationFrame(flushToState);
-      }
-      if (msg.type === "done") {
-        es.close();
-        setIs100kRowsLoading(false);
-        void fetchNextPage();
-        latestCountProgressRef.current = 0;
-      }
-      if (msg.type === "error") {
-        latestCountProgressRef.current = 0;
-        console.error(msg.message);
-        es.close();
-        setIs100kRowsLoading(false);
-      }
-    };
-    es.onerror = (e) => {
-      latestCountProgressRef.current = 0;
-      console.error("EventSource error:", e);
-      es.close();
-      setIs100kRowsLoading(false);
-    }
-
-    return () => {
-      es.close();
-      if (rafId !== undefined) {
-        cancelAnimationFrame(rafId);
-      }
-      latestCountProgressRef.current = 0;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobId]);
-
-  const onToggleSortColumn = useCallback((column: TableColumn) => {
-    const isSorted = pageParams.sortCol === column.name;
-    const newDirection = isSorted && pageParams.sortDir === "asc"
-      ? "desc"
-      : isSorted && pageParams.sortDir === "desc"
-        ? undefined
-        : "asc";
-    onSortColumn(column, newDirection);
-  }, [onSortColumn, pageParams.sortCol, pageParams.sortDir]);
-
-  const onFilterColumn = useCallback((column: TableColumn) => {
-    // This function will clear the filter for the given column.
-    // Users can then use the specific filter cells to set a new filter.
-    setPageParams(p => {
-      const newFilters = { ...p.filters };
-      delete newFilters[column.name];
-      return {
-        ...p,
-        cursor: undefined, // Reset cursor when filter changes
-        filters: newFilters,
-      };
-    });
-  }, [setPageParams]);
-
-  const onHideColumn = useCallback((column: TableColumn) => {
-    handleColumnToggle(column.name, true);
-  }, [handleColumnToggle]);
-
-  const [liveSearchInput, setLiveSearchInput] = useState<string>(search ?? "");
-
-  useEffect(() => {
-    // whenever the external `search` prop changes, reset the input
-    setLiveSearchInput(search ?? "");
-  }, [search]);
-
-  // debounced search
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (liveSearchInput !== search) {
-        setSearch(liveSearchInput);
-        setPageParams(p => ({ ...p, cursor: undefined, search: liveSearchInput }));
-      }
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [liveSearchInput, search, setSearch, setPageParams]);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (liveSearchInput !== search) {
-        setSearch(liveSearchInput);
-        setPageParams(p => ({ ...p, cursor: undefined, search: liveSearchInput }));
-      }
-    }, 300); // 300ms delay
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [liveSearchInput, search, setPageParams, setSearch]);
-
-  const tableContainerRef = useRef<HTMLDivElement>(null);
-  const [sorting, setSorting] = React.useState<SortingState>([])
-
-  const loader = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
     if (!loader.current) {
       return;
     }
@@ -446,7 +161,7 @@ export default function TableView({
     })
     obs.observe(loader.current);
     return () => obs.disconnect();
-  }, [fetchNextPage, loadedRows, streamLoading, totalRows]);
+  }, [fetchNextPage, loadedRows, streamLoading, tableContainerRef, totalRows]);
 
   useEffect(() => {
     const el = tableContainerRef.current;
@@ -467,155 +182,7 @@ export default function TableView({
     // run once in case content is short
     onScroll();
     return () => void el.removeEventListener("scroll", onScroll);
-  }, [fetchNextPage, loadedRows, streamLoading, totalRows]);
-
-  const cols = useMemo<ColumnDef<TableRow, TableRowValue>[]>(() => [
-    {
-      id: "#",
-      header: "",
-      enableSorting: true,
-      cell: ({ row }) => row.index + 1,
-      size: 40
-    },
-    ...columns
-      .filter(col => !hiddenColumnIds.has(col.columnId))
-      .map((col: TableColumn) => ({
-        id: col.name,
-        accessorFn: (row: TableRow) => row.data[col.name],
-        header: () => TableHeader({
-          col,
-          sortDir: pageParams.sortCol === col.name ? pageParams.sortDir : undefined,
-          onUpdateColumn: onUpdCol,
-          onSortColumn,
-          onToggleSortColumn,
-          onFilterColumn,
-          onHideColumn,
-          onDeleteColumn: onDelCol
-        }),
-        cell: EditableCell,
-        meta: {
-          dataType: col.dataType,
-        },
-        size: 200,
-      })),
-  ], [columns, hiddenColumnIds, pageParams.sortCol, pageParams.sortDir, onUpdCol, onSortColumn, onToggleSortColumn, onFilterColumn, onHideColumn, onDelCol]);
-
-  const [autoResetPageIndex, skipAutoResetPageIndex] = useSkipper()
-
-  const table = useReactTable<TableRow>({
-    data: rows,
-    columns: cols,
-    defaultColumn: {
-      cell: EditableCell
-    },
-    state: {
-      sorting,
-    },
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    manualFiltering: true,
-    manualSorting: true,
-    meta: {
-      updateData: async (rowIdx, columnId, value) => {
-        // Skip page index reset until after next rerender
-        skipAutoResetPageIndex()
-        await onUpdRow(rowIdx, {
-          [columnId]: value,
-        });
-      },
-      cellToFocus,
-      clearCellToFocus: () => setCellToFocus(undefined),
-    },
-    debugTable: true,
-  })
-
-  const { rows: tableModelRows } = table.getRowModel();
-
-  const rowVirtualizer = useVirtualizer({
-    count: rows.length,
-    estimateSize: () => 33, // estimate row height for accurate scrollbar dragging
-    getScrollElement: () => tableContainerRef.current,
-    // measure dynamic row height, except in firefox because it measures table border height incorrectly
-    measureElement:
-      typeof window !== 'undefined' &&
-        !navigator.userAgent.includes('Firefox')
-        ? element => element?.getBoundingClientRect().height
-        : undefined,
-    overscan: 10,
-  });
-
-  // scroll to top of table when sorting changes
-  const handleSortingChange: OnChangeFn<SortingState> = updater => {
-    setSorting(updater)
-    if (!!table.getRowModel().rows.length) {
-      rowVirtualizer.scrollToIndex?.(0)
-    }
-  }
-
-  // since this table option is derived from table row model state, we're using the table.setOptions utility
-  table.setOptions(prev => ({
-    ...prev,
-    onSortingChange: handleSortingChange,
-  }))
-
-  // Track previous row count
-  useEffect(() => {
-    previousRowCountRef.current = tableModelRows.length;
-  }, [tableModelRows.length]);
-
-  // When a new row appears, scroll to it and mark it as “to be focused”
-  useEffect(() => {
-    const currCount = tableModelRows.length;
-    if (
-      triggerFocusOnNewRow &&
-      currCount > previousRowCountRef.current
-    ) {
-      const newIndex = currCount - 1;
-      const firstEditable = cols.find(c => c.id !== "#");
-      if (firstEditable && firstEditable.id) {
-        rowVirtualizer.scrollToIndex(newIndex, {
-          align: "start",
-          behavior: "auto",
-        });
-        setCellToFocus({ rowIndex: newIndex, columnId: firstEditable.id });
-      }
-    }
-  }, [
-    tableModelRows.length,
-    triggerFocusOnNewRow,
-    cols,
-    rowVirtualizer,
-  ]);
-
-  // Clear trigger flag once focus is handed off
-  useEffect(() => {
-    if (
-      cellToFocus &&
-      tableModelRows.length <= previousRowCountRef.current
-    ) {
-      // If row count didn't actually increase, abandon focus attempt
-      setTriggerFocusOnNewRow(false);
-      setCellToFocus(undefined);
-    }
-  }, [tableModelRows.length, cellToFocus]);
-
-  const onAddColumnClick = useCallback(async () => {
-    const columnName = prompt("Enter new column name:");
-    if (!columnName) return;
-
-    const dataType = prompt("Enter data type (text, numeric, boolean, date):");
-    if (!dataType || !["text", "numeric", "boolean", "date"].includes(dataType)) {
-      alert("Invalid data type. Please enter one of: text, numeric, boolean, date.");
-      return;
-    }
-
-    try {
-      await onAddCol(columnName, dataType as TableColumnDataType);
-      setPageParams(p => ({ ...p, cursor: undefined })); // Reset cursor to fetch new columns
-    } catch (error) {
-      console.error("Failed to add column:", error);
-    }
-  }, [onAddCol, setPageParams]);
+  }, [fetchNextPage, loadedRows, streamLoading, tableContainerRef, totalRows]);
 
   const onAddRowClick = useCallback(async () => {
     try {
@@ -627,7 +194,7 @@ export default function TableView({
       console.error("Failed to add row:", error);
       setTriggerFocusOnNewRow(false);
     }
-  }, [columns, onAddRow]);
+  }, [columns, onAddRow, setTriggerFocusOnNewRow]);
 
   const addColumnOptionsSection: PopoverSectionProps[] = useMemo(() => [
     {
@@ -976,7 +543,7 @@ export default function TableView({
                         style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
                       >
                         <td
-                          colSpan={cols.length}
+                          colSpan={colsLength}
                           className="flex items-center justify-center text-gray-500 text-sm p-4"
                           style={{ width: "100%" }}
                         >
