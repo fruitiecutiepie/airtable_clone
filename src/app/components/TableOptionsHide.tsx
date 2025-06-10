@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useMemo, useCallback } from "react"
+import { useMemo, useCallback, useState } from "react"
 import { Popover } from "radix-ui"
 import { CalendarIcon, EyeSlashIcon, HashtagIcon } from "@heroicons/react/24/outline"
 import { Button } from "./ui/Button"
@@ -22,6 +22,8 @@ export function TableOptionsHide({
   setHiddenColumnIds,
   handleColumnToggle,
 }: TableOptionsHideProps) {
+  const [searchQuery, setSearchQuery] = useState("")
+
   const fields: FieldItem[] = useMemo(
     () =>
       columns.map((col) => ({
@@ -36,6 +38,11 @@ export function TableOptionsHide({
       })),
     [columns, hiddenColumnIds]
   );
+
+  const filteredFields = useMemo(() => {
+    if (!searchQuery.trim()) return fields
+    return fields.filter((field) => field.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  }, [fields, searchQuery])
 
   const handleShowAll = useCallback(() => {
     setHiddenColumnIds(new Set())
@@ -58,7 +65,8 @@ export function TableOptionsHide({
         <Button
           variant="ghost"
           size="xs"
-          className="hover:bg-gray-200 text-gray-700"
+          className={`hover:bg-gray-200 text-gray-700
+            ${hiddenColumnIds.size > 0 && "bg-blue-200 hover:bg-blue-200 border border-blue-200 hover:border-blue-300"}`}
         >
           <EyeSlashIcon className="w-4 h-4 mr-1" />
           Hide fields
@@ -70,7 +78,9 @@ export function TableOptionsHide({
         className="shadow-xl text-xs min-w-72 text-gray-700 z-20"
       >
         <ToggleFieldSection
-          fields={fields}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filteredFields={filteredFields}
           onFieldToggle={handleColumnToggle}
           onShowAll={handleShowAll}
           onHideAll={handleHideAll}

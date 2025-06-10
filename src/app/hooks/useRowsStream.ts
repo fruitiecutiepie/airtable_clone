@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef, useCallback, useTransition } from "react";
+import { useState, useEffect, useRef, useCallback, useTransition, type Dispatch, type SetStateAction } from "react";
 import { z } from "zod";
 import { TableRowSchema, type PageParams, type TableRow, type TableRowValue } from "~/lib/schemas";
 import type { RowsStreamReqBody } from "../api/[baseId]/[tableId]/rows/stream/route";
 import { api } from "~/trpc/react";
-import { fetcher } from "~/lib/fetcher";
 
 const StreamRowSchema = z.union([
   z.object({ totalRows: z.number() }),
@@ -25,15 +24,14 @@ export function useRowsStream(
   pageParams: PageParams,
   // concat of sort+filter+search+limit
   depsKey: string,
+  jobId: string | undefined,
+  setIs100kRowsLoading: Dispatch<SetStateAction<boolean>>
 ) {
   const [rows, setRows] = useState<TableRow[]>([]);
   const [totalRows, setTotalRows] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const [pending, startTransition] = useTransition();
-
-  const [is100kRowsLoading, setIs100kRowsLoading] = useState(false);
-  const [jobId, setJobId] = useState<string | undefined>(undefined);
 
   const buffer = useRef("");
   const chunkRef = useRef<TableRow[]>([]);
@@ -136,6 +134,7 @@ export function useRowsStream(
     search,
     tableId,
   ]);
+
   const reset = useCallback(() => {
     // cursorRef.current = undefined;
     setRows([]);
@@ -201,15 +200,6 @@ export function useRowsStream(
       rowId
     });
   }, [delRow, tableId]);
-
-  const onAdd100kRowsClick = useCallback(async () => {
-    setIs100kRowsLoading(true);
-    const { jobId } = await fetcher<{ jobId: string }>(
-      `/api/${baseId}/${tableId}/rows/100k`,
-      { method: "POST" }
-    );
-    setJobId(jobId);
-  }, [baseId, tableId]);
 
   useEffect(() => {
     latestCountProgressRef.current = 0;
@@ -288,8 +278,6 @@ export function useRowsStream(
 
     onAddRow,
     onUpdRow,
-    onDelRow,
-    onAdd100kRowsClick,
-    is100kRowsLoading,
+    onDelRow
   };
 }

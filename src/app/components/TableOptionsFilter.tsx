@@ -99,7 +99,8 @@ export function TableOptionsFilter({
         <Button
           variant="ghost"
           size="xs"
-          className="hover:bg-gray-200 text-gray-700"
+          className={`hover:bg-gray-200 text-gray-700
+            ${Object.keys(conditions).length > 0 && "bg-green-200 hover:bg-green-200 border border-green-200 hover:border-green-300"}`}
         >
           <AdjustmentsHorizontalIcon className="w-4 h-4 mr-1" />
           Filter

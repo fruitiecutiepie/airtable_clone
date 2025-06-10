@@ -169,38 +169,49 @@ export function useTanstackTable(
   // When a new row appears, scroll to it and mark it as “to be focused”
   useEffect(() => {
     const currCount = tableModelRows.length;
-    if (
-      triggerFocusOnNewRow &&
-      currCount > previousRowCountRef.current
-    ) {
-      const newIndex = currCount - 1;
-      const firstEditable = cols.find(c => c.id !== "#");
-      if (firstEditable && firstEditable.id) {
-        rowVirtualizer.scrollToIndex(newIndex, {
-          align: "start",
-          behavior: "auto",
-        });
-        setCellToFocus({ rowIndex: newIndex, columnId: firstEditable.id });
+
+    if (triggerFocusOnNewRow) {
+      if (currCount > previousRowCountRef.current) {
+        const newIndex = currCount - 1; // Assumes new row is the last one
+        const firstEditableColumn = cols.find(c => c.id !== "#");
+        if (firstEditableColumn?.id) {
+          rowVirtualizer.scrollToIndex(newIndex, {
+            align: "start",
+            behavior: "auto",
+          });
+          setCellToFocus({ rowIndex: newIndex, columnId: firstEditableColumn.id });
+        }
       }
+      // Always reset the trigger after an attempt, whether conditions were met or not,
+      // to ensure it's a one-shot mechanism per activation by setTriggerFocusOnNewRow(true).
+      setTriggerFocusOnNewRow(false);
     }
+    // Note: previousRowCountRef.current is updated in the subsequent effect.
   }, [
-    tableModelRows.length,
-    triggerFocusOnNewRow,
+    tableModelRows.length, // Effect runs when row length changes
+    triggerFocusOnNewRow,  // Effect also runs if trigger is set to true
     cols,
     rowVirtualizer,
+    setCellToFocus, // Added as a dependency
+    setTriggerFocusOnNewRow // Added as a dependency
   ]);
 
-  // Clear trigger flag once focus is handed off
+  // Track previous row count. This runs after the above effect has processed the change.
+  useEffect(() => {
+    previousRowCountRef.current = tableModelRows.length;
+  }, [tableModelRows.length]);
+
+  // Clear cellToFocus if the focused row might no longer be valid due to row changes
   useEffect(() => {
     if (
       cellToFocus &&
-      tableModelRows.length <= previousRowCountRef.current
+      tableModelRows.length <= previousRowCountRef.current && // Row count decreased or didn't change as expected post-focus
+      (cellToFocus.rowIndex >= tableModelRows.length || tableModelRows[cellToFocus.rowIndex]?.id !== cellToFocus.columnId) // Basic check if cell might be invalid
     ) {
-      // If row count didn't actually increase, abandon focus attempt
-      setTriggerFocusOnNewRow(false);
       setCellToFocus(undefined);
+      // triggerFocusOnNewRow should have already been reset by the main focusing effect.
     }
-  }, [tableModelRows.length, cellToFocus]);
+  }, [tableModelRows.length, cellToFocus, setCellToFocus, tableModelRows]);
 
   return {
     rows: tableModelRows,

@@ -3,11 +3,11 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Button } from "~/app/components/ui/Button";
 import { redirect } from "next/navigation";
-import { BarChartIcon, CalendarIcon, CaretDownIcon, ChevronRightIcon, FileIcon, FileTextIcon, ImageIcon, ListBulletIcon, MagnifyingGlassIcon, Pencil1Icon, PlusIcon, TrashIcon } from "@radix-ui/react-icons";
+import { CaretDownIcon, ChevronRightIcon, FileIcon, FileTextIcon, MagnifyingGlassIcon, Pencil1Icon, PlusIcon, TrashIcon } from "@radix-ui/react-icons";
 import TablePageHeader from "./TablePageHeader";
 import { useTables } from "../../hooks/useTables";
 import TableView from "./TableView";
-import { ContextMenu, DropdownMenu, Popover, Separator } from "radix-ui";
+import { DropdownMenu, Popover } from "radix-ui";
 import { PopoverSection, type PopoverItem, type PopoverSectionProps } from "~/app/components/ui/PopoverSection";
 import { ArrowTopRightOnSquareIcon, Bars3Icon, BookOpenIcon, SwatchIcon, TableCellsIcon } from "@heroicons/react/24/outline";
 import type { PageParams, TableColumn } from "~/lib/schemas";
@@ -18,6 +18,10 @@ import Image from "next/image";
 import { TableOptionsSort } from "~/app/components/TableOptionsSort";
 import { TableOptionsHide } from "~/app/components/TableOptionsHide";
 import { TableOptionsFilter } from "~/app/components/TableOptionsFilter";
+import { useTableSearch } from "~/app/hooks/useTableSearch";
+import { fetcher } from "~/lib/fetcher";
+import { Cross2Icon } from "@radix-ui/react-icons";
+import { TableSidebar } from "~/app/components/TableSidebar";
 
 interface TablePageProps {
   baseId: number,
@@ -35,7 +39,9 @@ export default function TablePage({
   const [search, setSearch] = useState("");
   const [pageParams, setPageParams] = useState<PageParams>({ pageSize: 50 });
   const [hiddenColumnIds, setHiddenColumnIds] = useState<Set<number>>(new Set());
-  const [viewSearchInput, setViewSearchInput] = useState("");
+
+  const [is100kRowsLoading, setIs100kRowsLoading] = useState(false);
+  const [jobId, setJobId] = useState<string | undefined>(undefined);
 
   const {
     tables,
@@ -65,20 +71,30 @@ export default function TablePage({
     onDelFilter,
   } = useSavedFilters(baseId, tableId, setPageParams);
 
+  const {
+    liveSearchInput,
+    setLiveSearchInput
+  } = useTableSearch(
+    search,
+    setSearch,
+    setPageParams
+  );
+
+  const onAdd100kRowsClick = useCallback(async () => {
+    setIs100kRowsLoading(true);
+    const { jobId } = await fetcher<{ jobId: string }>(
+      `/api/${baseId}/${tableId}/rows/100k`,
+      { method: "POST" }
+    );
+    setJobId(jobId);
+  }, [baseId, tableId]);
+
   useEffect(() => {
     if (!filtersLoading) {
       const fv = filters.find((f) => f.filterId === viewId);
       if (fv) onApplyFilter(fv);
     }
   }, [filters, viewId, onApplyFilter, filtersLoading]);
-
-  const filteredViews = useMemo(
-    () =>
-      filters.filter((f) =>
-        f.name.toLowerCase().includes(viewSearchInput.toLowerCase())
-      ),
-    [filters, viewSearchInput]
-  );
 
   const onSaveFilterClick = useCallback(async () => {
     const name = prompt("Name this filter set");
@@ -197,7 +213,7 @@ export default function TablePage({
   }, [setPageParams]);
 
   return (
-    <div className="flex flex-col w-full h-full max-h-screen">
+    <div className="flex flex-col w-full h-screen overflow-hidden">
       <TablePageHeader
         baseId={baseId}
       />
@@ -508,7 +524,7 @@ export default function TablePage({
                 size="xs"
                 className="hover:bg-gray-200 text-gray-700 gap-1 font-semibold"
               >
-                <TableCellsIcon className="w-4 h-4 mr-1" />
+                <TableCellsIcon className="w-4 h-4 mr-1 text-blue-500" />
                 {`${filters?.find(f => f.filterId === viewId)?.name ?? "Default view name"}`}
                 <CaretDownIcon className="w-6 h-6 text-gray-500 shrink-0" />
               </Button>
@@ -614,232 +630,71 @@ export default function TablePage({
             <ArrowTopRightOnSquareIcon className="w-4 h-4 mr-1" />
             Share and sync
           </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={onAdd100kRowsClick}
+              disabled={is100kRowsLoading}
+              size="xs"
+              className="hover:bg-gray-100 text-gray-700 border-gray-400"
+            >
+              {is100kRowsLoading ? "Loading..." : "Add 100k rows"}
+            </Button>
+          </div>
         </div>
+
+        <Popover.Root>
+          <Popover.Trigger asChild>
+            <button className="p-2 cursor-pointer">
+              <MagnifyingGlassIcon className="w-5 h-5 text-gray-500" />
+            </button>
+          </Popover.Trigger>
+
+          <Popover.Content
+            align="end"
+            className="bg-white border border-gray-300 shadow-lg rounded-md p-2 w-72 z-20"
+          >
+            <div className="relative w-full flex items-center">
+              <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+              <input
+                type="text"
+                value={liveSearchInput}
+                onChange={e => setLiveSearchInput(e.target.value)}
+                className="border border-gray-300 pl-9 pr-8 text-gray-700 text-sm px-3 py-1.5 w-full rounded-md outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Find in view…"
+              />
+              <Popover.Close asChild>
+                <button
+                  className="p-2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                  aria-label="Close"
+                >
+                  <Cross2Icon className="w-4 h-4" />
+                </button>
+              </Popover.Close>
+            </div>
+          </Popover.Content>
+        </Popover.Root>
       </div>
       <div
-        className="flex flex-row h-svh overflow-hidden"
+        className="flex flex-row flex-1 w-full min-h-0 overflow-hidden"
       >
         {/* Sidebar */}
         {sideBarOpen &&
-          <div className="min-w-72 max-w-72 h-full bg-white border-r border-gray-300 flex flex-col">
-            <div className="p-4 w-full h-full justify-between">
-
-              <div className="flex flex-col">
-                <div className="relative">
-                  <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                  <input
-                    type="text"
-                    value={viewSearchInput}
-                    onChange={e => setViewSearchInput(e.target.value)}
-                    className="pl-9 text-sm text-gray-700 px-3 py-1.5 h-full rounded-md w-full outline-none focus:outline-none ring-0"
-                    placeholder="Find a view"
-                  />
-                </div>
-
-                <Separator.Root className="my-4 bg-gray-300 h-px" />
-
-                <div className="px-2 min-h-[675px]">
-                  {filteredViews.length === 0 && (
-                    <div className="text-gray-500 text-sm">
-                      No saved views.
-                    </div>
-                  )}
-                  {filteredViews.map(f => (
-                    <ContextMenu.Root
-                      key={f.filterId}
-                    >
-                      <ContextMenu.Trigger
-                        asChild
-                      >
-                        <Button
-                          size="sm"
-                          className={`justify-start w-full text-gray-700 ${f.filterId === viewId
-                            ? "bg-sky-100 hover:bg-sky-200" : "bg-white hover:bg-gray-100"
-                            }`}
-                          onClick={() => {
-                            if (f.filterId === viewId) return;
-                            onApplyFilter(f);
-                            redirect(`/${baseId}/${tableId}/${f.filterId}`)
-                          }}
-                        >
-                          <TableCellsIcon className="w-4 h-4 mr-2" />
-                          {f.name}
-                        </Button>
-                      </ContextMenu.Trigger>
-                      <ContextMenu.Portal>
-                        <ContextMenu.Content
-                          className="bg-white shadow-xl px-3 py-4 rounded-lg w-64 border border-gray-300 text-xs
-                            fixed mt-1 z-20
-                            origin-top-left
-                          "
-                        >
-                          {editViewSections.map((section, sectionIdx) => (
-                            <div key={`context-section-${sectionIdx}`} className="flex flex-col">
-                              {section.title && (
-                                <p className="m-2 text-gray-400 text-[11px]">{section.title}</p>
-                              )}
-                              {section.items.map((item: PopoverItem, itemIdx: number) => {
-                                if (item.separator) {
-                                  return <ContextMenu.Separator
-                                    key={`context-item-${sectionIdx}-${itemIdx}`}
-                                    className="my-2 mx-2 h-px bg-gray-200"
-                                  />;
-                                }
-
-                                const isDisabled = item.disabled ?? false;
-                                const tooltip = isDisabled
-                                  ? "You can’t delete the only remaining view. Create another view first."
-                                  : undefined;
-                                const Icon = item.icon;
-                                // Links are inline-flex, buttons take full width
-                                const itemClasses = `
-                                  flex items-center p-1 px-2 gap-2 rounded
-                                  ${isDisabled
-                                    ? 'opacity-50 cursor-not-allowed'
-                                    : 'cursor-pointer data-[highlighted]:bg-gray-100'
-                                  }
-                                  outline-none text-xs leading-none
-                                  ${item.href ? '' : 'w-full text-left'} 
-                                `;
-
-                                const handleSelect = async () => {
-                                  if (isDisabled) return;
-                                  if (item.href) {
-                                    redirect(item.href);
-                                  } else if (item.onClick) {
-                                    await item.onClick();
-                                  }
-                                };
-
-                                return (
-                                  <ContextMenu.Item
-                                    key={`context-item-${sectionIdx}-${itemIdx}`}
-                                    disabled={isDisabled}
-                                    className={itemClasses}
-                                    onSelect={handleSelect}
-                                    title={tooltip}
-                                  >
-                                    {Icon && <Icon className="inline-flex items-center justify-center h-4 w-4 shrink-0" />}
-                                    <span className={`${item.textColorClass ?? 'text-gray-700'}`}>
-                                      {item.text}
-                                    </span>
-                                  </ContextMenu.Item>
-                                );
-                              })}
-                            </div>
-                          ))}
-                        </ContextMenu.Content>
-                      </ContextMenu.Portal>
-                    </ContextMenu.Root >
-                  ))}
-                </div>
-              </div>
-
-              <Separator.Root className="my-4 bg-gray-300 h-px" />
-
-              <div className="space-y-2 px-2">
-                <div className="tracking-wide py-2"
-                >
-                  Create...
-                </div>
-                <div
-                  className="flex items-center justify-between hover:bg-gray-100"
-                >
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="text-gray-700 w-full justify-start hover:bg-gray-100"
-                  >
-                    <TableCellsIcon className="w-4 h-4 mr-2" />
-                    Grid
-                  </Button>
-                  <PlusIcon className="w-5 h-5 text-gray-500 cursor-pointer mx-2" />
-                </div>
-                <div
-                  className="flex items-center justify-between hover:bg-gray-100"
-                >
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="text-gray-700 w-full justify-start hover:bg-gray-100"
-                  >
-                    <CalendarIcon className="w-4 h-4 mr-2" />
-                    Calendar
-                  </Button>
-                  <PlusIcon className="w-5 h-5 text-gray-500 cursor-pointer mx-2" />
-                </div>
-                <div
-                  className="flex items-center justify-between hover:bg-gray-100"
-                >
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="text-gray-700 w-full justify-start hover:bg-gray-100"
-                  >
-                    <ImageIcon className="w-4 h-4 mr-2" />
-                    Gallery
-                  </Button>
-                  <PlusIcon className="w-5 h-5 text-gray-500 cursor-pointer mx-2" />
-                </div>
-                <div
-                  className="flex items-center justify-between hover:bg-gray-100"
-                >
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="text-gray-700 w-full justify-start hover:bg-gray-100"
-                  >
-                    <BarChartIcon className="w-4 h-4 mr-2" />
-                    Kanban
-                  </Button>
-                  <PlusIcon className="w-5 h-5 text-gray-500 cursor-pointer mx-2" />
-                </div>
-                <div
-                  className="flex items-center justify-between hover:bg-gray-100"
-                >
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="text-gray-700 w-full justify-start hover:bg-gray-100"
-                  >
-                    <ListBulletIcon className="w-4 h-4 mr-2" />
-                    Timeline
-                  </Button>
-                  <PlusIcon className="w-5 h-5 text-gray-500 cursor-pointer mx-2" />
-                </div>
-                <div
-                  className="flex items-center justify-between hover:bg-gray-100"
-                >
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="text-gray-700 w-full justify-start hover:bg-gray-100"
-                  >
-                    <ListBulletIcon className="w-4 h-4 mr-2" />
-                    List
-                  </Button>
-                  <PlusIcon className="w-5 h-5 text-gray-500 cursor-pointer mx-2" />
-                </div>
-                <div
-                  className="flex items-center justify-between hover:bg-gray-100"
-                >
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="text-gray-700 w-full justify-start hover:bg-gray-100"
-                  >
-                    New section
-                  </Button>
-                  <PlusIcon className="w-5 h-5 text-gray-500 cursor-pointer mx-2" />
-                </div>
-              </div>
-            </div>
-          </div>
+          <TableSidebar
+            baseId={baseId}
+            tableId={tableId}
+            viewId={viewId}
+            filters={filters}
+            editViewSections={editViewSections}
+            onApplyFilter={onApplyFilter}
+          />
         }
 
-        <div>
+        <div
+          className={`flex-1 flex flex-col h-full min-h-0`}
+        >
           {/* Main Content */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0">
             <TableView
               baseId={baseId}
               tableId={tableId}
@@ -848,6 +703,9 @@ export default function TablePage({
               setSearch={setSearch}
               pageParams={pageParams}
               setPageParams={setPageParams}
+
+              jobId={jobId}
+              setIs100kRowsLoading={setIs100kRowsLoading}
 
               onSaveFilterClick={onSaveFilterClick}
 

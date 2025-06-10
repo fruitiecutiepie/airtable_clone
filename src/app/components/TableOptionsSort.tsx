@@ -47,8 +47,7 @@ export function TableOptionsSort({
     }
   }, [sortColumns, columns, onSortColumn]);
 
-
-  const filteredColumns = useMemo(() => {
+  const sortedColumns = useMemo(() => {
     if (!searchQuery.trim()) return columns
     return columns.filter((column) => column.name.toLowerCase().includes(searchQuery.toLowerCase()))
   }, [columns, searchQuery])
@@ -66,7 +65,7 @@ export function TableOptionsSort({
           <Button
             variant="ghost"
             size="xs"
-            className="hover:bg-gray-200 text-gray-700"
+            className={`hover:bg-gray-200 text-gray-700 cursor-pointer`}
           >
             <ArrowsUpDownIcon className="w-4 h-4 mr-1" />
             Sort
@@ -96,7 +95,7 @@ export function TableOptionsSort({
             className="my-1 w-full"
           />
 
-          {sortColumns.length === 0 && filteredColumns.map(col => (
+          {sortColumns.length === 0 && sortedColumns.map(col => (
             <DropdownMenu.Item
               key={col.columnId}
               onSelect={(e) => {
@@ -133,7 +132,8 @@ export function TableOptionsSort({
         <Button
           variant="ghost"
           size="xs"
-          className="hover:bg-gray-200 text-gray-700"
+          className={`hover:bg-gray-200 text-gray-700
+            ${sortColumns.length > 0 && "bg-orange-200 hover:bg-orange-200 border border-orange-200 hover:border-orange-300"}`}
         >
           <ArrowsUpDownIcon className="w-4 h-4 mr-1" />
           Sort

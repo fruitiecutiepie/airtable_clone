@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-import { useState, useMemo } from "react"
 import { Switch } from "radix-ui"
 import { SearchInput } from "./ui/SearchInput"
 
@@ -13,7 +12,9 @@ export interface FieldItem {
 }
 
 export interface ToggleFieldSectionProps {
-  fields: FieldItem[]
+  searchQuery: string
+  setSearchQuery: React.Dispatch<React.SetStateAction<string>>
+  filteredFields: FieldItem[]
   onFieldToggle: (fieldId: string, enabled: boolean) => void
   onShowAll: () => void
   onHideAll: () => void
@@ -32,7 +33,9 @@ export interface ToggleFieldSectionProps {
 // ]
 
 export function ToggleFieldSection({
-  fields = [],
+  searchQuery,
+  setSearchQuery,
+  filteredFields,
   onFieldToggle,
   onShowAll,
   onHideAll,
@@ -40,13 +43,6 @@ export function ToggleFieldSection({
   searchPlaceholder = "Find a field",
   className = "",
 }: ToggleFieldSectionProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-
-  const filteredFields = useMemo(() => {
-    if (!searchQuery.trim()) return fields
-    return fields.filter((field) => field.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  }, [fields, searchQuery])
-
   const handleFieldToggle = (fieldId: string, enabled: boolean) => {
     onFieldToggle(fieldId, enabled)
   }
