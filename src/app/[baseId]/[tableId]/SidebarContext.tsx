@@ -8,7 +8,7 @@ export interface SidebarContextValue {
 }
 
 export const SidebarContext = createContext<SidebarContextValue>({
-  sideBarOpen: false,
+  sideBarOpen: true,
   setSidebarOpen: () =>
     console.warn("setSidebarOpen called without a provider"),
 });
