@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { pool } from "~/server/db/db";
-import { TableRowValueSchema, type TableColumnDataType } from "~/lib/schemas";
+import { TableRowSchema, TableRowValueSchema, type TableColumnDataType, type TableRow, type TableRowValue } from "~/lib/schemas";
 import { publicProcedure } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 
@@ -12,6 +12,7 @@ export const addRows = publicProcedure
       rows: z.array(z.record(TableRowValueSchema)),
     })
   )
+  .output(TableRowSchema.array())
   .mutation(async ({ input }) => {
     const client = await pool.connect();
     try {
@@ -56,15 +57,37 @@ export const addRows = publicProcedure
 
       const jsonArray = `[${jsonRows.join(",")}]`;
 
-      await client.query(
+      const res = await client.query<{
+        rowId: string;
+        tableId: number;
+        data: Record<string, TableRowValue>;
+        createdAt: Date;
+        updatedAt: Date;
+      }>(
         `
         INSERT INTO app_rows (table_id, created_at, data)
         SELECT $1, $2::timestamptz, jsonb_array_elements($3::jsonb)
+        RETURNING
+          row_id AS "rowId",
+          table_id AS "tableId",
+          data,
+          created_at AS "createdAt",
+          updated_at AS "updatedAt"
         `,
         [input.tableId, input.createdAt, jsonArray]
       );
-
       await client.query("COMMIT");
+
+      const rows = res.rows;
+      return rows.map(row => {
+        return {
+          rowId: row.rowId,
+          tableId: row.tableId,
+          data: row.data,
+          createdAt: row.createdAt.toISOString(),
+          updatedAt: row.updatedAt.toISOString(),
+        }
+      });
     } catch (err) {
       await client.query("ROLLBACK");
       console.error("Error adding rows:", err);
