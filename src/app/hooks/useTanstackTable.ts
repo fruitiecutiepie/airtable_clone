@@ -132,7 +132,10 @@ export function useTanstackTable(
     debugTable: true,
   })
 
-  const { rows: tableModelRows } = table.getRowModel();
+  const tableModelRows = useMemo(
+    () => table.getRowModel().rows,
+    [table]
+  );
 
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
@@ -148,18 +151,19 @@ export function useTanstackTable(
   });
 
   // scroll to top of table when sorting changes
-  const handleSortingChange: OnChangeFn<SortingState> = updater => {
+  const handleSortingChange: OnChangeFn<SortingState> = useCallback(updater => {
     setSorting(updater)
     if (!!tableModelRows.length) {
       rowVirtualizer.scrollToIndex?.(0)
     }
-  }
+  }, [rowVirtualizer, tableModelRows]);
 
-  // since this table option is derived from table row model state, we're using the table.setOptions utility
-  table.setOptions(prev => ({
-    ...prev,
-    onSortingChange: handleSortingChange,
-  }))
+  useEffect(() => {
+    table.setOptions(prev => ({
+      ...prev,
+      onSortingChange: handleSortingChange,
+    }))
+  }, [table, handleSortingChange])
 
   // Track previous row count
   useEffect(() => {

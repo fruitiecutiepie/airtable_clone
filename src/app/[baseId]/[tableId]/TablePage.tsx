@@ -10,7 +10,7 @@ import TableView from "./TableView";
 import { DropdownMenu, Popover } from "radix-ui";
 import { PopoverSection, type PopoverItem, type PopoverSectionProps } from "~/app/components/ui/PopoverSection";
 import { ArrowTopRightOnSquareIcon, Bars3Icon, BookOpenIcon, SwatchIcon, TableCellsIcon } from "@heroicons/react/24/outline";
-import type { PageParams, TableColumn } from "~/lib/schemas";
+import type { Filter, PageParams, SavedFilter, TableColumn } from "~/lib/schemas";
 import { useSavedFilters } from "~/app/hooks/useSavedFilters";
 import { useColumns } from "~/app/hooks/useColumns";
 import { SidebarContext } from "./SidebarContext";
@@ -22,6 +22,7 @@ import { useTableSearch } from "~/app/hooks/useTableSearch";
 import { fetcher } from "~/lib/fetcher";
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { TableSidebar } from "~/app/components/TableSidebar";
+import { mutate } from "swr";
 
 interface TablePageProps {
   baseId: number,
@@ -37,11 +38,75 @@ export default function TablePage({
   const { sideBarOpen, setSidebarOpen } = useContext(SidebarContext);
 
   const [search, setSearch] = useState("");
-  const [pageParams, setPageParams] = useState<PageParams>({ pageSize: 50 });
   const [hiddenColumnIds, setHiddenColumnIds] = useState<Set<number>>(new Set());
 
+  const [ready, setReady] = useState(false);
   const [is100kRowsLoading, setIs100kRowsLoading] = useState(false);
   const [jobId, setJobId] = useState<string | undefined>(undefined);
+
+  const {
+    filtersData,
+    // filtersError,
+    filtersLoading,
+
+    onSaveFilter,
+    onDelFilter,
+  } = useSavedFilters(baseId, tableId);
+
+  const currFilter = useMemo(() => {
+    if (filtersLoading) return undefined;
+    return filtersData.find(f => f.filterId === viewId);
+  }, [filtersData, filtersLoading, viewId]);
+
+  const [pageParams, setPageParams] = useState<PageParams>({
+    pageSize: 50,
+    filters: currFilter?.filters,
+    cursor: undefined,
+  });
+
+  const onApplyFilter = useCallback((filter: SavedFilter) => {
+    setPageParams((p) => ({
+      ...p,
+      filters: filter.filters,
+      cursor: undefined,
+    }));
+  }, [setPageParams]);
+
+  const onSetFilter = useCallback(
+    async (
+      filterId: number | undefined,
+      filters: Record<string, Filter[]>,
+      name: string | undefined
+    ) => {
+      setPageParams(p => ({
+        ...p,
+        filters,
+        cursor: undefined,
+      }));
+
+      const newFilter = await onSaveFilter({
+        baseId,
+        tableId,
+        filterId,
+        name: name ?? `Filter ${filtersData.length + 1}`,
+        filters: name ? filters : {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // revalidate the list of saved-views
+      await mutate(`/api/${baseId}/${tableId}/views`);
+      return newFilter;
+    },
+    [baseId, filtersData.length, onSaveFilter, tableId]
+  );
+
+  useEffect(() => {
+    if (!filtersLoading) {
+      if (currFilter) onApplyFilter(currFilter);
+      setReady(true);
+    }
+  }, [filtersLoading, currFilter, onApplyFilter]);
 
   const {
     tables,
@@ -62,14 +127,16 @@ export default function TablePage({
     onDelCol,
   } = useColumns(baseId, tableId, setPageParams);
 
-  const {
-    filters,
-    // filtersError,
-    filtersLoading,
-    onApplyFilter,
-    onSetFilter,
-    onDelFilter,
-  } = useSavedFilters(baseId, tableId, setPageParams);
+  // const didInit = useRef(false)
+  // useEffect(() => {
+  //   if (!didInit.current) {
+  //     didInit.current = true
+  //     return
+  //   }
+  //   if (currFilter) {
+  //     void onSetFilter(currFilter.filterId, pageParams.filters ?? {}, currFilter.name)
+  //   }
+  // }, [pageParams.filters, currFilter, onSetFilter])
 
   const {
     liveSearchInput,
@@ -89,26 +156,16 @@ export default function TablePage({
     setJobId(jobId);
   }, [baseId, tableId]);
 
-  useEffect(() => {
-    if (!filtersLoading) {
-      const fv = filters.find((f) => f.filterId === viewId);
-      if (fv) onApplyFilter(fv);
-    }
-  }, [filters, viewId, onApplyFilter, filtersLoading]);
-
-  const onSaveFilterClick = useCallback(async () => {
-    const name = prompt("Name this filter set");
-    if (!name) return;
+  const onNewFilterClick = useCallback(async () => {
     const newView = await onSetFilter(
       undefined,
-      name,
-      pageParams.filters ?? {}
+      {},
+      undefined
     );
     if (newView?.filterId) {
-      onApplyFilter(newView);
       redirect(`/${baseId}/${tableId}/${newView.filterId}`);
     }
-  }, [onSetFilter, onApplyFilter, pageParams.filters, baseId, tableId]);
+  }, [onSetFilter, baseId, tableId]);
 
   const editTableSections: PopoverSectionProps[] = useMemo(() => [
     {
@@ -159,16 +216,14 @@ export default function TablePage({
           icon: Pencil1Icon,
           text: "Rename view",
           onClick: async () => {
-            const filter = filters?.find(f => f.filterId === viewId);
-            if (!filter) return;
-            const newName = prompt("Rename view", filter.name ?? "New view");
+            if (!currFilter) return;
+            const newName = prompt("Rename view", currFilter.name ?? "New view");
             if (newName) {
-              const renamedFilter = await onSetFilter(
-                filter.filterId,
-                newName,
-                pageParams.filters ?? {}
+              await onSetFilter(
+                currFilter.filterId,
+                pageParams.filters ?? {},
+                newName
               );
-              onApplyFilter(renamedFilter);
             }
           }
         },
@@ -179,16 +234,16 @@ export default function TablePage({
           icon: TrashIcon,
           text: "Delete view",
           textColorClass: "text-red-700",
-          disabled: filters?.length <= 1,
+          disabled: filtersData?.length <= 1,
           onClick: async () => {
             if (!confirm("Are you sure you want to delete this view?")) return;
             await onDelFilter(viewId);
-            redirect(`/${baseId}/${tableId}/${filters?.[0]?.filterId}`);
+            redirect(`/${baseId}/${tableId}/${filtersData?.[0]?.filterId}`);
           }
         }
       ],
     },
-  ], [baseId, filters, onApplyFilter, onDelFilter, onSetFilter, pageParams.filters, tableId, viewId]);
+  ], [baseId, currFilter, filtersData, onDelFilter, onSetFilter, pageParams.filters, tableId, viewId]);
 
   const handleColumnToggle = useCallback((columnId: string, enabled: boolean) => {
     setHiddenColumnIds((prev) => {
@@ -211,6 +266,8 @@ export default function TablePage({
       sortDir: direction,
     }));
   }, [setPageParams]);
+
+  if (!ready) return null;
 
   return (
     <div className="flex flex-col w-full h-screen overflow-hidden">
@@ -525,7 +582,7 @@ export default function TablePage({
                 className="hover:bg-gray-200 text-gray-700 gap-1 font-semibold"
               >
                 <TableCellsIcon className="w-4 h-4 mr-1 text-blue-500" />
-                {`${filters?.find(f => f.filterId === viewId)?.name ?? "Default view name"}`}
+                {`${currFilter?.name ?? "Default view name"}`}
                 <CaretDownIcon className="w-6 h-6 text-gray-500 shrink-0" />
               </Button>
             </DropdownMenu.Trigger>
@@ -606,9 +663,11 @@ export default function TablePage({
             handleColumnToggle={handleColumnToggle}
           />
           <TableOptionsFilter
+            currFilter={currFilter}
             columns={columns}
             pageParams={pageParams}
             setPageParams={setPageParams}
+            onAddFilter={onSetFilter}
           />
           <TableOptionsSort
             columns={columns}
@@ -684,9 +743,10 @@ export default function TablePage({
             baseId={baseId}
             tableId={tableId}
             viewId={viewId}
-            filters={filters}
+            filters={filtersData}
             editViewSections={editViewSections}
             onApplyFilter={onApplyFilter}
+            onAddSavedFilterClick={onNewFilterClick}
           />
         }
 
@@ -707,7 +767,8 @@ export default function TablePage({
               jobId={jobId}
               setIs100kRowsLoading={setIs100kRowsLoading}
 
-              onSaveFilterClick={onSaveFilterClick}
+              ready={ready}
+              onSaveFilterClick={onNewFilterClick}
 
               hiddenColumnIds={hiddenColumnIds}
               handleColumnToggle={handleColumnToggle}

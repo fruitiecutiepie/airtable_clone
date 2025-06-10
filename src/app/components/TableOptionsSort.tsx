@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { DropdownMenu, Select } from "radix-ui"
 import { CalendarIcon, CaretDownIcon, CheckboxIcon, LetterCaseCapitalizeIcon, PlusIcon, QuestionMarkIcon } from "@radix-ui/react-icons"
 import { SearchInput } from "./ui/SearchInput"
@@ -17,11 +17,13 @@ const getSortDirPlaceholderText = (
     return "Order";
   }
   const isNumeric = colDataType === "numeric";
+  const isBoolean = colDataType === "boolean";
+  const isDate = colDataType === "date";
   // You can extend this for other data types like date, boolean if needed
   if (dir === "asc") {
-    return isNumeric ? "1 → 9" : "A → Z";
+    return isNumeric ? "1 → 9" : isBoolean ? "False → True" : isDate ? "Oldest → Newest" : "A → Z";
   } else { // dir === "desc"
-    return isNumeric ? "9 → 1" : "Z → A";
+    return isNumeric ? "9 → 1" : isBoolean ? "True → False" : isDate ? "Newest → Oldest" : "Z → A";
   }
 };
 
@@ -36,13 +38,25 @@ export function TableOptionsSort({
 }: TableOptionsSortProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortColumns, setSortColumns] = useState<[string, "asc" | "desc" | undefined][]>([]);
+  const previousActiveSortColNameRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (sortColumns.length > 0) {
-      const [colName, direction] = sortColumns[0]!;
+      const [colName, direction] = sortColumns[0]!; // Assuming single column sort for now
       const columnDef = columns.find(c => c.name === colName);
       if (columnDef) {
         onSortColumn(columnDef, direction);
+        previousActiveSortColNameRef.current = colName;
+      }
+    } else {
+      // sortColumns is empty, meaning the user wants to clear the sort from this UI.
+      // Call onSortColumn with undefined direction for the previously active column.
+      if (previousActiveSortColNameRef.current) {
+        const columnDefToClear = columns.find(c => c.name === previousActiveSortColNameRef.current);
+        if (columnDefToClear) {
+          onSortColumn(columnDefToClear, undefined);
+        }
+        previousActiveSortColNameRef.current = null;
       }
     }
   }, [sortColumns, columns, onSortColumn]);

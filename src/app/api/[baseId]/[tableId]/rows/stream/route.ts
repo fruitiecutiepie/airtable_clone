@@ -12,7 +12,7 @@ import {
 const ReqBodySchema = z.object({
   search: z.string().optional(),
   limit: z.number().int().min(1).max(1000).default(200),
-  cursor: z.string().optional(),
+  cursor: CursorSchema.optional(),
   sortCol: z.string().default("row_id"),
   sortDir: z.enum(["asc", "desc"]).default("asc"),
   filters: z.record(z.array(FilterSchema)).default({}),
@@ -138,6 +138,17 @@ export async function POST(
           }
         }
 
+        // count the rows without pagination
+        const whereWithoutCursor = where.length
+          ? `WHERE ${where.join(" AND ")}`
+          : "";
+        const paramsWithoutCursor = params.slice();
+        const countSql = `
+          SELECT COUNT(*) AS count
+          FROM app_rows
+          ${whereWithoutCursor}
+        `;
+
         // cursor pagination
         // If sortCol === "row_id": use row_id > lastId
         // Otherwise: use (data->>sortCol)::text, row_id > (lastValue, lastId)
@@ -145,63 +156,35 @@ export async function POST(
         let lastValue: TableRowValue;
         if (cursor) {
           const parsedCursor: z.infer<typeof CursorSchema> =
-            CursorSchema.parse(JSON.parse(cursor));
+            CursorSchema.parse(cursor);
           lastId = parsedCursor.lastId;
           lastValue = parsedCursor.lastValue;
-          if (sortCol === "row_id") {
-            where.push(`row_id > $${idx}`);
-            params.push(lastId);
+          const op = sortDir === 'asc' ? '>' : '<';
+          if (sortCol === 'row_id') {
+            where.push(`row_id ${op} $${idx}`);
+            params.push(Number(lastId));
             idx++;
           } else {
+            // TODO: cast to proper type
             where.push(
-              `((data->>'${sortCol}')::text, row_id) > ($${idx}, $${idx + 1})`
+              `((data->>'${sortCol}')::text, row_id) ${op} ($${idx}, $${idx + 1})`
             );
-            params.push(lastValue ?? "", lastId);
+            params.push(lastValue ?? '', lastId);
             idx += 2;
           }
         }
 
         // Compute totalRows
         const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
-        const countSql = `
-          SELECT COUNT(*) AS count
-          FROM app_rows
-          ${whereSql}
-        `;
-        const { rows: countRows } = await client.query<{ count: string }>(
-          countSql,
-          params
-        );
-        const totalRows =
-          countRows.length > 0 && countRows[0]?.count
-            ? Number(countRows[0].count)
-            : 0;
-
-        // If no rows match, we can close immediately
-        if (totalRows === 0) {
-          controller.enqueue(
-            encoder.encode(JSON.stringify({ totalRows }) + "\n")
-          );
-          controller.close();
-          return;
-        }
-
-        // Send the totalRows line first (NDJSON)
-        controller.enqueue(
-          encoder.encode(JSON.stringify({ totalRows }) + "\n")
-        );
-
         const orderExpr =
           sortCol === "row_id"
             ? `row_id ${sortDir}`
             : `(data->>'${sortCol}')::text ${sortDir}, row_id ${sortDir}`;
 
-        const sql = `
+        const dataSql = `
           SELECT
-            row_id,
-            data,
-            created_at,
-            updated_at
+            COUNT(*) OVER() AS total_rows,
+            row_id, data, created_at, updated_at
           FROM app_rows
           ${whereSql}
           ORDER BY ${orderExpr}
@@ -209,13 +192,30 @@ export async function POST(
         `;
         params.push(limit);
 
+        console.log("🔍 SQL WHERE:", where.join(" AND "), "params=", params);
+
+        await client.query("BEGIN");
+        const { rows: countRows } = await client.query<{
+          count: string
+        }>(
+          countSql,
+          paramsWithoutCursor
+        );
+        const totalRows = Number(countRows[0]?.count)
+        controller.enqueue(
+          encoder.encode(JSON.stringify({ totalRows }) + "\n")
+        );
+
         // Open a pg-cursor on SELECT
         const cursorInstance = new Cursor<{
           row_id: number;
           data: Record<string, TableRowValue>;
           created_at: Date;
           updated_at: Date;
-        }>(sql, params);
+        }>(
+          dataSql,
+          params
+        );
 
         const cursorQuery = client.query(
           cursorInstance
@@ -248,9 +248,10 @@ export async function POST(
           }
         } while (batch.length > 0);
 
-        // Done streaming
-        controller.close();
+        await client.query("COMMIT");
       } catch (err) {
+        console.error("Error in rows stream:", err);
+        await client.query("ROLLBACK");
         controller.error(err instanceof Error ? err : new Error(String(err)));
       } finally {
         client.release();

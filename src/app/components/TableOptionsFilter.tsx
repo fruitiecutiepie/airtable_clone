@@ -1,44 +1,75 @@
 "use client"
 
 import type React from "react"
-import { useCallback, useState, useEffect } from "react"
+import { useCallback } from "react"
 import { AdjustmentsHorizontalIcon, TrashIcon } from "@heroicons/react/24/outline"
 import { Button } from "./ui/Button"
-import { FilterOperationSchema, type Filter, type FilterOperation, type PageParams, type TableColumn } from "~/lib/schemas"
+import { FilterOperationSchema, type Filter, type FilterOperation, type PageParams, type SavedFilter, type TableColumn } from "~/lib/schemas"
 import { PlusIcon, CaretDownIcon } from "@radix-ui/react-icons"
 import { Popover, Select } from "radix-ui"
 
 export interface TableOptionsFilterProps {
+  currFilter: SavedFilter | undefined,
   columns: TableColumn[],
   pageParams: PageParams,
   setPageParams: React.Dispatch<React.SetStateAction<PageParams>>,
+  onAddFilter: (
+    filterId: number | undefined,
+    filters: Record<string, Filter[]>,
+    name: string | undefined
+  ) => Promise<SavedFilter | void>
 }
 
 export function TableOptionsFilter({
+  currFilter,
   columns,
-
   pageParams,
   setPageParams,
+  onAddFilter,
 }: TableOptionsFilterProps) {
   // column name to filter
-  const [conditions, setConditions] = useState<Record<string, Filter[]>>({});
+  // const [conditions, setConditions] = useState<Record<string, Filter[]>>(() => {
+  //   return currFilter?.filters ?? {};
+  // });
+
+  const updateFilters = useCallback(
+    (fn: (f: Record<string, Filter[]>) => Record<string, Filter[]>) => {
+      const next = fn(pageParams.filters ?? {});
+      setPageParams(prev => ({
+        ...prev,
+        filters: next,
+        cursor: undefined
+      }));
+      void onAddFilter(currFilter?.filterId, next, currFilter?.name)
+    }, [currFilter?.filterId, currFilter?.name, onAddFilter, pageParams.filters, setPageParams]
+  );
 
   const onAddCondition = useCallback(() => {
-    // Add a new condition for the first column
-    const firstColumn = columns[0];
-    console.log("Adding condition for column:", firstColumn?.name);
-    if (!firstColumn) return;
-    setConditions((prev) => {
-      const existing = prev[firstColumn.name] ?? [];
-      return {
-        ...prev,
-        [firstColumn.name]: [
-          ...existing,
-          { op: "in", value: "" } // Default condition
-        ]
-      };
-    });
-  }, [columns]);
+    const first = columns[0]?.name
+    if (!first) return
+    updateFilters(f => ({
+      ...f,
+      [first]: [...(f[first] ?? []), { op: "in", value: "" }]
+    }))
+  }, [columns, updateFilters])
+  // const isFirst = useRef(true);
+
+  // const onAddCondition = useCallback(() => {
+  //   // Add a new condition for the first column
+  //   const firstColumn = columns[0];
+  //   console.log("Adding condition for column:", firstColumn?.name);
+  //   if (!firstColumn) return;
+  //   setConditions((prev) => {
+  //     const existing = prev[firstColumn.name] ?? [];
+  //     return {
+  //       ...prev,
+  //       [firstColumn.name]: [
+  //         ...existing,
+  //         { op: "in", value: "" } // Default condition
+  //       ]
+  //     };
+  //   });
+  // }, [columns]);
 
   const getFilterOperationDisplay = (op: FilterOperation) => {
     switch (op) {
@@ -63,33 +94,41 @@ export function TableOptionsFilter({
     }
   };
 
-  useEffect(() => {
-    // build a new filters record
-    const newFilters: Record<string, Filter[]> = {};
-    for (const [colName, conds] of Object.entries(conditions)) {
-      const colDef = columns.find(c => c.name === colName);
-      if (!colDef) continue;
-      newFilters[colName] = conds.map(({ op, value }) => {
-        let parsed: string | number | boolean | undefined = value;
-        if (colDef.dataType === "numeric") {
-          parsed = value === "" ? undefined : parseFloat(value as string);
-        }
-        if (colDef.dataType === "boolean") {
-          parsed = Boolean(value);
-        }
-        if (colDef.dataType === "date") {
-          parsed = value === "" ? undefined : value;
-        }
-        return { op, value: parsed };
-      });
-    }
+  // useEffect(() => {
+  //   const newFilters: Record<string, Filter[]> = {}
+  //   for (const [colName, conds] of Object.entries(pageParams.filters ?? {})) {
+  //     const col = columns.find(c => c.name === colName)
+  //     if (!col) continue
+  //     newFilters[colName] = conds.map(({ op, value }) => {
+  //       let v: TableRowValue = value;
+  //       if (col.dataType === "numeric") v = value === "" ? undefined : parseFloat(value as string);
+  //       if (col.dataType === "boolean") v = Boolean(value);
+  //       if (col.dataType === "date") v = value === "" ? undefined : value;
+  //       return { op, value: v };
+  //     })
+  //   }
 
-    // only update if filters actually changed
-    const old = pageParams.filters ?? {};
-    if (JSON.stringify(old) !== JSON.stringify(newFilters) || pageParams.cursor !== undefined) {
-      setPageParams(p => ({ ...p, cursor: undefined, filters: newFilters }));
-    }
-  }, [conditions, columns, pageParams, setPageParams]);
+  //   if (JSON.stringify(newFilters) === JSON.stringify(pageParams.filters)) {
+  //     return;
+  //   }
+
+  //   setPageParams(prev => {
+  //     return {
+  //       ...prev,
+  //       cursor: undefined,
+  //       filters: newFilters
+  //     }
+  //   });
+
+  //   if (isFirst.current) {
+  //     isFirst.current = false
+  //     return
+  //   }
+
+  //   if (currFilter) {
+  //     void onAddFilter(currFilter.filterId, newFilters, currFilter.name)
+  //   }
+  // }, [columns, currFilter, setPageParams, onAddFilter, pageParams.filters])
 
   return (
     <Popover.Root>
@@ -100,7 +139,7 @@ export function TableOptionsFilter({
           variant="ghost"
           size="xs"
           className={`hover:bg-gray-200 text-gray-700
-            ${Object.keys(conditions).length > 0 && "bg-green-200 hover:bg-green-200 border border-green-200 hover:border-green-300"}`}
+            ${Object.keys(pageParams.filters ?? {}).length > 0 && "bg-green-200 hover:bg-green-200 border border-green-200 hover:border-green-300"}`}
         >
           <AdjustmentsHorizontalIcon className="w-4 h-4 mr-1" />
           Filter
@@ -114,7 +153,7 @@ export function TableOptionsFilter({
         <div className={`w-full p-3 gap-2 flex flex-col bg-white border border-gray-200 rounded-sm shadow-sm`}>
           {/* Field List */}
           <div className="w-full flex flex-col gap-2">
-            {Object.keys(conditions).length === 0 ? (
+            {Object.keys(pageParams.filters ?? {}).length === 0 ? (
               <div className="text-gray-400 text-sm px-2 py-1">
                 No filter conditions are applied.
               </div>
@@ -123,7 +162,7 @@ export function TableOptionsFilter({
                 In this view, show records
               </div>
             )}
-            {columns.length > 0 && Object.entries(conditions).flatMap(([colName, conds]) =>
+            {columns.length > 0 && Object.entries(pageParams.filters ?? {}).flatMap(([colName, conds]) =>
               conds.map((cond, index) => {
                 const dataType = columns.find(c => c.name === colName)?.dataType;
                 return (
@@ -189,7 +228,7 @@ export function TableOptionsFilter({
                       value={colName}
                       onValueChange={(newColName) => {
                         console.log("Column changed:", newColName);
-                        setConditions((prev) => {
+                        updateFilters((prev) => {
                           const updated = { ...prev };
 
                           // If column exists, update the array
@@ -249,7 +288,7 @@ export function TableOptionsFilter({
                       value={cond.op}
                       onValueChange={(newOp) => {
                         console.log("Operation changed:", newOp);
-                        setConditions((prev) => {
+                        updateFilters((prev) => {
                           const updated = { ...prev };
                           if (!updated[colName]) return prev;
 
@@ -312,23 +351,48 @@ export function TableOptionsFilter({
                                 "text"
                         }
                         placeholder="Enter a value"
-                        value={cond.value as string}
+                        checked={dataType === "boolean" ? Boolean(cond.value) : undefined}
+                        value={dataType === "boolean"
+                          ? undefined
+                          : String(cond.value ?? "")}
                         onChange={e => {
-                          setConditions((prev) => {
+                          const raw = e.currentTarget
+                          let newValue: string | number | boolean | undefined
+
+                          if (dataType === "numeric") {
+                            // number inputs give you a string, so parse it here:
+                            newValue = raw.value === ""
+                              ? undefined
+                              : parseFloat(raw.value)
+                          }
+                          else if (dataType === "boolean") {
+                            // checkbox → checked
+                            newValue = raw.checked
+                          }
+                          else if (dataType === "date") {
+                            newValue = raw.value === ""
+                              ? undefined
+                              : raw.value
+                          }
+                          else {
+                            newValue = raw.value
+                          }
+
+                          updateFilters(prev => {
                             const updated = { ...prev };
-                            if (!updated[colName]) return prev;
+                            const bucket = updated[colName]?.slice();  // copy the array
+                            if (!bucket) return prev;
 
-                            const prevFilter = updated[colName][index];
-                            if (!prevFilter) return prev;
+                            const filterToUpdate = bucket[index];
+                            if (!filterToUpdate) {
+                              console.warn(`Filter at index ${index} for column ${colName} not found during value update.`);
+                              return prev;
+                            }
 
-                            updated[colName][index] = {
-                              op: prevFilter.op,
-                              value: e.target.value,
-                            };
-
-                            console.log("Value changed:", e.target.value);
+                            bucket[index] = { ...filterToUpdate, value: newValue };
+                            updated[colName] = bucket;
                             return updated;
-                          });
+                          })
                         }}
                         className="w-full h-full px-2 text-gray-700 outline-none focus:outline-none ring-0"
                       />
@@ -342,7 +406,7 @@ export function TableOptionsFilter({
                       <TrashIcon
                         className="w-4 h-4 text-gray-500 cursor-pointer hover:text-red-500"
                         onClick={() => {
-                          setConditions((prev) => {
+                          updateFilters((prev) => {
                             const updated = { ...prev };
                             if (!updated[colName]) return prev;
                             updated[colName] = updated[colName].filter((_, i) => i !== index);

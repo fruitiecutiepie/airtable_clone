@@ -14,6 +14,8 @@ interface TableViewProps {
   baseId: number;
   tableId: number;
 
+  ready: boolean;
+
   search: string;
   setSearch: React.Dispatch<React.SetStateAction<string>>;
   pageParams: PageParams;
@@ -37,6 +39,8 @@ export default function TableView({
   baseId,
   tableId,
 
+  ready,
+
   search,
   pageParams,
   setPageParams,
@@ -54,11 +58,12 @@ export default function TableView({
   onDelCol,
   onSortColumn
 }: TableViewProps) {
+  const filtersKey = useMemo(() => JSON.stringify(pageParams.filters ?? {}), [pageParams.filters]);
   const depsKey = [
     search,
     pageParams.sortCol,
     pageParams.sortDir,
-    JSON.stringify(pageParams.filters)
+    filtersKey,
   ].join("|");
 
   const {
@@ -66,16 +71,16 @@ export default function TableView({
     totalRows,
     loading: streamLoading,
     error: streamError,
+    reset,
     fetchNextPage,
 
     onAddRow,
     onUpdRow,
     onDelRow
-  } = useRowsStream(baseId, tableId, search, pageParams, depsKey, jobId, setIs100kRowsLoading);
+  } = useRowsStream(baseId, tableId, search, pageParams, ready, depsKey, jobId, setIs100kRowsLoading);
   const loadedRows = useMemo(() => rows.length, [rows.length]);
 
   const loader = useRef<HTMLDivElement>(null);
-
   const {
     rows: tableModelRows,
     colsLength,
@@ -132,25 +137,25 @@ export default function TableView({
   // }, [jobId, setTotalRows, setStreamLoading]);
 
   useEffect(() => {
-    if (!loader.current) {
-      return;
-    }
-    const obs = new IntersectionObserver(([entry]) => {
-      console.log(`entry.isIntersecting: ${entry?.isIntersecting} streamLoading: ${streamLoading} loadedRows: ${loadedRows} totalRows: ${totalRows}`);
-      if (
-        entry?.isIntersecting
-        && !streamLoading
-        && loadedRows < totalRows
-      ) {
+    if (!loader.current) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        // guard with your loading+rows checks
+        if (streamLoading || loadedRows >= totalRows) return;
+
+        // prevent any further callbacks until this batch is done
+        obs.unobserve(entry.target);
         void fetchNextPage();
-      }
-    }, {
-      root: tableContainerRef.current,
-      // rootMargin: "0px 0px 200px 0px",
-    })
+        // resume observing for the *next* batch
+        obs.observe(entry.target);
+      },
+      { root: tableContainerRef.current }
+    );
+
     obs.observe(loader.current);
     return () => obs.disconnect();
-  }, [fetchNextPage, loadedRows, streamLoading, tableContainerRef, totalRows]);
+  }, [fetchNextPage, streamLoading, loadedRows, totalRows, tableContainerRef]);
 
   useEffect(() => {
     const el = tableContainerRef.current;
@@ -509,7 +514,7 @@ export default function TableView({
                     </tr>
                   ) : (
                     rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                      const row = table.getRowModel().rows[virtualRow.index];
+                      const row = tableModelRows[virtualRow.index];
                       if (!row) return null;
                       const col = row.getVisibleCells()[0];
                       if (!col) return null;

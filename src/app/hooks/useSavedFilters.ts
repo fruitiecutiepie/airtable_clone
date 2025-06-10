@@ -1,17 +1,16 @@
 "use client";
 
-import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { useCallback } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { fetcher } from "~/lib/fetcher";
-import type { Filter, PageParams, SavedFilter } from "~/lib/schemas";
+import type { SavedFilter } from "~/lib/schemas";
 import { api } from "~/trpc/react";
 
 export function useSavedFilters(
   baseId: number,
   tableId: number,
-  setPageParams: Dispatch<SetStateAction<PageParams>>
 ) {
-  const { data: filters = [], error: filtersError, isLoading: filtersLoading } = useSWR<
+  const { data: filtersData = [], error: filtersError, isLoading: filtersLoading } = useSWR<
     SavedFilter[],
     string
   >(
@@ -33,46 +32,16 @@ export function useSavedFilters(
     },
   });
 
-  const onApplyFilter = useCallback((filter: SavedFilter) => {
-    setPageParams((p) => ({
-      ...p,
-      filters: filter.filters,
-      cursor: undefined,
-    }));
-  }, [setPageParams]);
-
-  const onSetFilter = useCallback(async (
-    filterId: number | undefined,
-    name: string,
-    filters: Record<string, Filter[]>
-  ) => {
-    const newFilter = await setFilter.mutateAsync({
-      baseId,
-      tableId,
-      filterId,
-      name,
-      filters,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-    await mutate(`/api/${baseId}/${tableId}/views`);
-    return newFilter;
-  },
-    [baseId, mutate, setFilter, tableId]
-  );
-
   const onDelFilter = useCallback(async (filterId: number) => {
-    if (!confirm("Delete this filter?")) return;
     await delFilter.mutateAsync({ filterId });
   }, [delFilter]);
 
   return {
-    filters,
+    filtersData,
     filtersError,
     filtersLoading,
 
-    onApplyFilter,
-    onSetFilter,
+    onSaveFilter: setFilter.mutateAsync,
     onDelFilter,
   };
 }

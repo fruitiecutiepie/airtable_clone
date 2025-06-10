@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useMemo } from "react"
 import { TableCellsIcon } from "@heroicons/react/24/outline"
 import { Button } from "./ui/Button"
-import { type SavedFilter } from "~/lib/schemas"
+import { type Filter, type SavedFilter } from "~/lib/schemas"
 import { PlusIcon, CaretDownIcon, BarChartIcon, CalendarIcon, ImageIcon, ListBulletIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons"
 import { ContextMenu, Separator } from "radix-ui"
 import { redirect } from "next/navigation"
@@ -16,7 +16,8 @@ export interface TableSidebarProps {
   viewId: number
   filters: SavedFilter[]
   editViewSections: PopoverSectionProps[]
-  onApplyFilter: (filter: SavedFilter) => void
+  onApplyFilter: (filter: SavedFilter) => void,
+  onAddSavedFilterClick: () => Promise<void>
 }
 
 export function TableSidebar({
@@ -25,7 +26,8 @@ export function TableSidebar({
   viewId,
   filters,
   editViewSections,
-  onApplyFilter
+  onApplyFilter,
+  onAddSavedFilterClick,
 }: TableSidebarProps) {
   const [viewSearchInput, setViewSearchInput] = useState("");
   const [sideBarCreateOpen, setSideBarCreateOpen] = useState(true);
@@ -42,7 +44,7 @@ export function TableSidebar({
     <div className="min-w-72 max-w-72 h-full bg-white border-r border-gray-300 flex flex-col">
       <div className="p-4 w-full h-full flex flex-col justify-between">
 
-        <div className="flex flex-col">
+        <div className="flex flex-col flex-1 overflow-hidden">
           <div className="relative">
             <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
             <input
@@ -56,7 +58,7 @@ export function TableSidebar({
 
           <Separator.Root className="my-4 bg-gray-300 h-px" />
 
-          <div className="px-2 min-h-[675px]">
+          <div className="px-2 flex-1 overflow-auto">
             {filteredViews.length === 0 && (
               <div className="text-gray-500 text-sm">
                 No saved views.
@@ -174,7 +176,9 @@ export function TableSidebar({
                     <TableCellsIcon className="w-4 h-4 mr-2 text-blue-500" />
                     Grid
                   </Button>
-                  <PlusIcon className="w-5 h-5 text-gray-500 cursor-pointer mx-2" />
+                  <PlusIcon className="w-5 h-5 text-gray-500 cursor-pointer mx-2"
+                    onClick={onAddSavedFilterClick}
+                  />
                 </div>
                 <div className="flex items-center justify-between hover:bg-gray-100">
                   <Button variant="ghost" size="xs" className="text-gray-700 w-full justify-start hover:bg-gray-100">

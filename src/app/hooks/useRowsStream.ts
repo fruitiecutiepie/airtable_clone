@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useTransition, type Dispatch, type SetStateAction } from "react";
 import { z } from "zod";
-import { TableRowSchema, type PageParams, type TableRow, type TableRowValue } from "~/lib/schemas";
+import { TableRowSchema, type Cursor, type PageParams, type TableRow, type TableRowValue } from "~/lib/schemas";
 import type { RowsStreamReqBody } from "../api/[baseId]/[tableId]/rows/stream/route";
 import { api } from "~/trpc/react";
 
@@ -22,6 +22,7 @@ export function useRowsStream(
   tableId: number,
   search: string,
   pageParams: PageParams,
+  ready: boolean,
   // concat of sort+filter+search+limit
   depsKey: string,
   jobId: string | undefined,
@@ -35,7 +36,7 @@ export function useRowsStream(
 
   const buffer = useRef("");
   const chunkRef = useRef<TableRow[]>([]);
-  // const cursorRef = useRef<string | undefined>(undefined);
+  const cursorRef = useRef<Cursor | undefined>(undefined);
   const cancelledRef = useRef(false);
   const latestCountProgressRef = useRef<number>(0);
 
@@ -49,18 +50,21 @@ export function useRowsStream(
   }, []);
 
   const fetchNextPage = useCallback(async () => {
+    if (loading || cancelledRef.current) return;
     setLoading(true);
     setError(undefined);
+    console.log("▶️ fetchNextPage with filters:", pageParams.filters);
 
     try {
       // 1) Use cursorRef.current instead of pageParams.cursor, so we advance pagination as we stream
+      const cursorToSend = cursorRef.current ?? pageParams.cursor;
       const res = await fetch(`/api/${baseId}/${tableId}/rows/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           search,
           limit: pageParams.pageSize,
-          cursor: pageParams.cursor,         // ← send the latest rowId here
+          cursor: cursorToSend,
           sortCol: pageParams.sortCol,
           sortDir: pageParams.sortDir,
           filters: pageParams.filters,
@@ -101,6 +105,12 @@ export function useRowsStream(
             setTotalRows(parsed.totalRows); // update total count
           } else {
             chunkRef.current.push(parsed);
+            cursorRef.current = {
+              lastId: parsed.rowId,
+              lastValue: (pageParams.sortCol && pageParams.sortCol !== "row_id")
+                ? (parsed.data)[pageParams.sortCol]
+                : undefined,
+            }
             // cursorRef.current = parsed.rowId; // advance cursor to last rowId
             if (chunkRef.current.length >= CHUNK_SIZE) {
               flush();
@@ -126,6 +136,7 @@ export function useRowsStream(
   }, [
     baseId,
     flush,
+    loading,
     pageParams.cursor,
     pageParams.filters,
     pageParams.pageSize,
@@ -136,17 +147,26 @@ export function useRowsStream(
   ]);
 
   const reset = useCallback(() => {
-    // cursorRef.current = undefined;
+    buffer.current = "";
+    chunkRef.current = [];
+    cursorRef.current = undefined;
     setRows([]);
+    setTotalRows(0);
     setLoading(false);
     setError(undefined);
     void fetchNextPage();
-    console.log("Rows stream reset");
   }, [fetchNextPage]);
 
   const addRows = api.table.addRows.useMutation({
-    onSuccess: async () => {
-      reset();
+    onSuccess: async (addedRowsData: TableRow[], variables, context) => {
+      // Assuming 'addedRowsData' is the array of newly created TableRow objects returned by the mutation.
+      // This typically includes the server-generated rowId and other default values.
+      if (addedRowsData && addedRowsData.length > 0) {
+        startTransition(() => {
+          setRows((prevRows) => [...prevRows, ...addedRowsData]); // Append new row(s) to the end
+          setTotalRows((prevTotal) => prevTotal + addedRowsData.length);
+        });
+      }
     },
     onError: (error, variables, context) => {
       console.error(`Error adding rows: ${error.message}`, variables, context);
@@ -154,9 +174,18 @@ export function useRowsStream(
       setLoading(false);
     }
   });
+
   const updRow = api.table.updRow.useMutation({
-    onSuccess: async () => {
-      await fetchNextPage();
+    onSuccess: async (updatedRowData: TableRow, variables, context) => {
+      // Assuming 'updatedRowData' is the complete updated TableRow object returned by the mutation.
+      if (updatedRowData) {
+        startTransition(() => {
+          setRows((prevRows) =>
+            prevRows.map((r) => (r.rowId === updatedRowData.rowId ? updatedRowData : r))
+          );
+          // totalRows does not change on update
+        });
+      }
     },
     onError: (error, variables, context) => {
       console.error(`Error updating row: ${error.message}`, variables, context);
@@ -164,9 +193,15 @@ export function useRowsStream(
       setLoading(false);
     }
   });
+
   const delRow = api.table.delRow.useMutation({
-    onSuccess: async () => {
-      await fetchNextPage();
+    onSuccess: async (data, variables, context) => {
+      // 'variables' will contain { tableId, rowId } passed to mutateAsync
+      const { rowId } = variables;
+      startTransition(() => {
+        setRows((prevRows) => prevRows.filter((r) => r.rowId !== rowId));
+        setTotalRows((prevTotal) => prevTotal - 1);
+      });
     },
     onError: (error, variables, context) => {
       console.error(`Error deleting row: ${error.message}`, variables, context);
@@ -228,7 +263,7 @@ export function useRowsStream(
       if (msg.type === "done") {
         es.close();
         setIs100kRowsLoading(false);
-        void fetchNextPage();
+        reset();
         latestCountProgressRef.current = 0;
       }
       if (msg.type === "error") {
@@ -256,24 +291,20 @@ export function useRowsStream(
   }, [jobId]);
 
   useEffect(() => {
+    if (!ready) return;
     cancelledRef.current = false;
-    reset();
+    reset();   // ← clear buffer, rows, cursor, totalRows, then fetch
     return () => {
       cancelledRef.current = true;
-      buffer.current = "";
-      chunkRef.current = [];
-      // cursorRef.current = undefined;
-      setRows([]);
-      setLoading(false);
-      setError(undefined);
     };
-  }, [depsKey, reset]);
+  }, [depsKey, ready, reset]);
 
   return {
     rows,
     totalRows,
     loading: loading || pending,
     error,
+    reset,
     fetchNextPage,
 
     onAddRow,
