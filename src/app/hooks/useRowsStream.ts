@@ -320,7 +320,6 @@ export function useRowsStream(
     totalRows,
     loading: loading || pending,
     error,
-    reset,
     fetchNextPage,
 
     onAddRow,

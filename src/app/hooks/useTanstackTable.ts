@@ -28,6 +28,7 @@ export function useTanstackTable(
 
   hiddenColumnIds: Set<number>,
   handleColumnToggle: (columnId: string, hidden: boolean) => void,
+  onFilterColumnClick: (column: TableColumn) => void,
 
   onUpdRow: (rowId: string, data: Record<string, TableRowValue>) => Promise<void>,
   onUpdCol: (columnId: number, newName: string) => Promise<void>,
@@ -71,7 +72,7 @@ export function useTanstackTable(
   }, [setPageParams]);
 
   const onHideColumn = useCallback((column: TableColumn) => {
-    handleColumnToggle(column.name, true);
+    handleColumnToggle(column.columnId.toString(), false);
   }, [handleColumnToggle]);
 
   const cols = useMemo<ColumnDef<TableRow, TableRowValue>[]>(() => [
@@ -93,7 +94,7 @@ export function useTanstackTable(
           onUpdateColumn: onUpdCol,
           onSortColumn,
           onToggleSortColumn,
-          onFilterColumn,
+          onFilterColumn: onFilterColumnClick,
           onHideColumn,
           onDeleteColumn: onDelCol
         }),
@@ -103,7 +104,7 @@ export function useTanstackTable(
         },
         size: 200,
       })),
-  ], [columns, hiddenColumnIds, pageParams.sortCol, pageParams.sortDir, onUpdCol, onSortColumn, onToggleSortColumn, onFilterColumn, onHideColumn, onDelCol]);
+  ], [columns, hiddenColumnIds, pageParams.sortCol, pageParams.sortDir, onUpdCol, onSortColumn, onToggleSortColumn, onFilterColumnClick, onHideColumn, onDelCol]);
 
   const table = useReactTable<TableRow>({
     data: rows,
@@ -132,10 +133,7 @@ export function useTanstackTable(
     debugTable: true,
   })
 
-  const tableModelRows = useMemo(
-    () => table.getRowModel().rows,
-    [table]
-  );
+  const { rows: tableModelRows } = table.getRowModel();
 
   const rowVirtualizer = useVirtualizer({
     count: rows.length,

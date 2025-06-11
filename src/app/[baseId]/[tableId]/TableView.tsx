@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { flexRender } from "@tanstack/react-table";
 import type { PageParams, TableColumn, TableColumnDataType } from "~/lib/schemas";
-import { CheckboxIcon, Cross2Icon, LetterCaseCapitalizeIcon, PlusIcon, UploadIcon } from "@radix-ui/react-icons";
+import { CheckboxIcon, LetterCaseCapitalizeIcon, PlusIcon, UploadIcon } from "@radix-ui/react-icons";
 import { ContextMenu, Popover } from "radix-ui";
 import { CalendarIcon, HashtagIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useRowsStream } from "~/app/hooks/useRowsStream";
@@ -24,6 +24,7 @@ interface TableViewProps {
   jobId: string | undefined;
   setIs100kRowsLoading: React.Dispatch<React.SetStateAction<boolean>>;
 
+  onFilterColumnClick: (column: TableColumn) => void;
   onSaveFilterClick: () => Promise<void>;
 
   columns: TableColumn[];
@@ -48,6 +49,7 @@ export default function TableView({
   jobId,
   setIs100kRowsLoading,
 
+  onFilterColumnClick,
   // onSaveFilterClick,
 
   columns,
@@ -71,7 +73,6 @@ export default function TableView({
     totalRows,
     loading: streamLoading,
     error: streamError,
-    reset,
     fetchNextPage,
 
     onAddRow,
@@ -98,6 +99,7 @@ export default function TableView({
 
     hiddenColumnIds,
     handleColumnToggle,
+    onFilterColumnClick,
 
     onUpdRow,
     onUpdCol,

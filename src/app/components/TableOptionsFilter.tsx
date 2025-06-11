@@ -17,7 +17,9 @@ export interface TableOptionsFilterProps {
     filterId: number | undefined,
     filters: Record<string, Filter[]>,
     name: string | undefined
-  ) => Promise<SavedFilter | void>
+  ) => Promise<SavedFilter | void>,
+  filterPopoverOpen: boolean,
+  setFilterPopoverOpen: React.Dispatch<React.SetStateAction<boolean>>,
 }
 
 export function TableOptionsFilter({
@@ -26,6 +28,8 @@ export function TableOptionsFilter({
   pageParams,
   setPageParams,
   onAddFilter,
+  filterPopoverOpen,
+  setFilterPopoverOpen
 }: TableOptionsFilterProps) {
   // column name to filter
   // const [conditions, setConditions] = useState<Record<string, Filter[]>>(() => {
@@ -131,7 +135,10 @@ export function TableOptionsFilter({
   // }, [columns, currFilter, setPageParams, onAddFilter, pageParams.filters])
 
   return (
-    <Popover.Root>
+    <Popover.Root
+      open={filterPopoverOpen}
+      onOpenChange={setFilterPopoverOpen}
+    >
       <Popover.Trigger
         asChild
       >

@@ -64,6 +64,20 @@ export default function TablePage({
     cursor: undefined,
   });
 
+  const [filterPopoverOpen, setFilterPopoverOpen] = useState(false);
+
+  const openFilterForColumn = useCallback((column: TableColumn) => {
+    setPageParams(p => ({
+      ...p,
+      cursor: undefined,
+      filters: {
+        ...p.filters,
+        [column.name]: p.filters?.[column.name] ?? [{ op: "in", value: "" }]
+      }
+    }));
+    setFilterPopoverOpen(true);
+  }, [setPageParams]);
+
   const onApplyFilter = useCallback((filter: SavedFilter) => {
     setPageParams((p) => ({
       ...p,
@@ -668,6 +682,8 @@ export default function TablePage({
             pageParams={pageParams}
             setPageParams={setPageParams}
             onAddFilter={onSetFilter}
+            filterPopoverOpen={filterPopoverOpen}
+            setFilterPopoverOpen={setFilterPopoverOpen}
           />
           <TableOptionsSort
             columns={columns}
@@ -758,6 +774,7 @@ export default function TablePage({
             <TableView
               baseId={baseId}
               tableId={tableId}
+              ready={ready}
 
               search={search}
               setSearch={setSearch}
@@ -767,7 +784,7 @@ export default function TablePage({
               jobId={jobId}
               setIs100kRowsLoading={setIs100kRowsLoading}
 
-              ready={ready}
+              onFilterColumnClick={openFilterForColumn}
               onSaveFilterClick={onNewFilterClick}
 
               hiddenColumnIds={hiddenColumnIds}
