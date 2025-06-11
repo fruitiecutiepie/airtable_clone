@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, type Dispatch, type SetStateAction } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { fetcher } from "~/lib/fetcher";
 import type { PageParams, TableColumn, TableColumnDataType } from "~/lib/schemas";
@@ -16,6 +16,10 @@ export function useColumns(
     fetcher
   );
   const { mutate } = useSWRConfig();
+
+  useEffect(() => {
+    console.log("columns identity:", columns);
+  }, [columns]);
 
   const addColumn = api.table.addColumn.useMutation({
     onSuccess: async () => void mutate(`/api/${baseId}/${tableId}/columns`),
