@@ -15,6 +15,7 @@ export function useRows(
   setPageParams: Dispatch<SetStateAction<PageParams>>,
 ) {
   const utils = api.useUtils();
+  const appUrl = process.env.VERCEL_URL ? "" : "http://localhost:3000";
 
   const [loading, setLoading] = useState(false);
   const [loadingCount, setLoadingCount] = useState(0);
@@ -158,7 +159,7 @@ export function useRows(
 
   const onAdd100kRowsClick = useCallback(async () => {
     setLoading(true);
-    const { jobId } = await fetcher<{ jobId: string }>(`/api/${baseId}/${tableId}/rows/100k`, { method: "POST" });
+    const { jobId } = await fetcher<{ jobId: string }>(`${appUrl}/api/${baseId}/${tableId}/rows/100k`, { method: "POST" });
     const es = new EventSource(`/api/events/${jobId}`);
     es.onmessage = (event: MessageEvent) => {
       const msg = JSON.parse(event.data as string) as EventSourceMessage;
@@ -180,7 +181,7 @@ export function useRows(
         es.close();
       }
     };
-  }, [baseId, infRowsRefetch, tableId]);
+  }, [appUrl, baseId, infRowsRefetch, tableId]);
 
   return {
     infRows,

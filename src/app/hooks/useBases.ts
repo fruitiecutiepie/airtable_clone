@@ -8,6 +8,8 @@ import { api } from '~/trpc/react'
 export function useBases(
   userId: string
 ) {
+  const appUrl = process.env.VERCEL_URL ? "" : "http://localhost:3000";
+
   const { data: bases = [], error: basesError, isLoading: basesIsLoading } = useSWR<Base[], string>(
     `/api/bases?userId=${userId}`,
     fetcher
@@ -66,8 +68,8 @@ export function useBases(
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     })
-    redirect(`/${newBase.id}`);
-  }, [addBase, userId])
+    redirect(`${appUrl}/${newBase.id}`);
+  }, [addBase, appUrl, userId])
 
   const baseOnClick = useCallback(async (baseId: number) => {
     const baseExists = bases?.find(b => b.id === baseId);
@@ -76,13 +78,13 @@ export function useBases(
       return;
     }
 
-    const tables = await fetcher<Table[]>(`/api/${String(baseId)}/tables`);
+    const tables = await fetcher<Table[]>(`${appUrl}/api/${String(baseId)}/tables`);
     const firstTable = tables[0];
     if (!firstTable) {
       const { tableId, filterId } = await fetcher<{
         tableId: number;
         filterId: string;
-      }>(`/api/${baseId}/tables`, {
+      }>(`${appUrl}/api/${baseId}/tables`, {
         method: "POST",
         body: JSON.stringify({
           name: "Table 1",
@@ -91,16 +93,16 @@ export function useBases(
         }),
       });
 
-      redirect(`/${baseId}/${tableId}/${filterId}`);
+      redirect(`${appUrl}/${baseId}/${tableId}/${filterId}`);
     }
 
-    const views = await fetcher<SavedFilter[]>(`/api/${baseId}/${firstTable.id}/views`);
+    const views = await fetcher<SavedFilter[]>(`${appUrl}/api/${baseId}/${firstTable.id}/views`);
     const firstView = views[0];
     if (!firstView) {
       const { filterId } = await fetcher<{
         tableId: number;
         filterId: string;
-      }>(`/api/${baseId}/${firstTable.id}/views`, {
+      }>(`${appUrl}/api/${baseId}/${firstTable.id}/views`, {
         method: "POST",
         body: JSON.stringify({
           name: "Default View",
@@ -110,11 +112,11 @@ export function useBases(
         }),
       });
 
-      redirect(`/${baseId}/${firstTable.id}/${filterId}`);
+      redirect(`${appUrl}/${baseId}/${firstTable.id}/${filterId}`);
     }
 
-    redirect(`/${baseId}/${firstTable.id}/${firstView.filterId}`);
-  }, [bases]);
+    redirect(`${appUrl}/${baseId}/${firstTable.id}/${firstView.filterId}`);
+  }, [appUrl, bases]);
 
   return {
     bases,

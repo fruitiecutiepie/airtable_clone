@@ -20,7 +20,7 @@ export default async function BasePage({ params }: TablePageUrlProps) {
   const baseIdNum = parseInt(baseIdStr, 10);
   if (isNaN(baseIdNum)) {
     console.error(`Invalid baseId parameters provided: ${baseIdStr}`);
-    redirect(`${appUrl}`);
+    redirect(`${appUrl}/`);
   }
 
   const tables = await fetcher<Table[]>(`${appUrl}/api/${baseIdNum}/tables`);
@@ -59,7 +59,7 @@ export default async function BasePage({ params }: TablePageUrlProps) {
       }),
     });
 
-    redirect(`/${baseIdNum}/${firstTable.id}/${filterId}`);
+    redirect(`${appUrl}/${baseIdNum}/${firstTable.id}/${filterId}`);
   }
 
   console.log("Redirecting to view:", `${appUrl}/${baseIdNum}/${firstTable.id}/${firstView.filterId}`);

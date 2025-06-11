@@ -314,7 +314,6 @@ export function useRowsStream(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [depsKey, ready, reset]);
 
-  console.log("useRowsStream: rows=", rows.length, "totalRows=", totalRows, "loading=", loading, "error=", error);
   return {
     rows,
     totalRows,

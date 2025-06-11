@@ -163,8 +163,9 @@ export default function TablePage({
 
   const onAdd100kRowsClick = useCallback(async () => {
     setIs100kRowsLoading(true);
+    const appUrl = process.env.VERCEL_URL ? "" : "http://localhost:3000";
     const { jobId } = await fetcher<{ jobId: string }>(
-      `/api/${baseId}/${tableId}/rows/100k`,
+      `${appUrl}/api/${baseId}/${tableId}/rows/100k`,
       { method: "POST" }
     );
     setJobId(jobId);

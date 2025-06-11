@@ -8,6 +8,8 @@ import { redirect } from "next/navigation";
 export function useTables(
   baseId: number
 ) {
+  const appUrl = process.env.VERCEL_URL ? "" : "http://localhost:3000";
+
   const { data: tables = [], error, isLoading } = useSWR<Table[], string>(
     `/api/${String(baseId)}/tables`,
     fetcher
@@ -15,13 +17,13 @@ export function useTables(
   const { mutate } = useSWRConfig();
 
   const updTable = api.table.updTable.useMutation({
-    onSuccess: async () => void mutate(`/api/${String(baseId)}/tables`),
+    onSuccess: async () => void mutate(`${appUrl}/api/${String(baseId)}/tables`),
     onError(error, variables, context) {
       console.error(`Error updating table: ${error.message}`, variables, context);
     },
   });
   const delTable = api.table.delTable.useMutation({
-    onSuccess: async () => void mutate(`/api/${String(baseId)}/tables`),
+    onSuccess: async () => void mutate(`${appUrl}/api/${String(baseId)}/tables`),
     onError(error, variables, context) {
       console.error(`Error deleting table: ${error.message}`, variables, context);
     },
@@ -41,7 +43,7 @@ export function useTables(
       tableId: number,
       filterId: number;
     }>(
-      `/api/${String(baseId)}/tables`,
+      `${appUrl}/api/${String(baseId)}/tables`,
       {
         method: 'POST',
         headers: {
@@ -52,7 +54,7 @@ export function useTables(
     );
 
     redirect(`/${baseId}/${res.tableId}/${res.filterId}`);
-  }, [baseId, tables.length]);
+  }, [appUrl, baseId, tables.length]);
 
   const onUpdTable = useCallback(async (
     tableId: number,
