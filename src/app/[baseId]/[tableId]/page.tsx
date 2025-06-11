@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { fetcher } from "~/lib/fetcher";
 import type { SavedFilter } from "~/lib/schemas";
@@ -17,20 +18,23 @@ export default async function Page({ params }: TablePageUrlProps) {
   const baseIdNum = parseInt(baseIdStr, 10);
   const tableIdNum = parseInt(tableIdStr, 10);
 
+  const hdr = await headers();
+  const host = hdr.get("x-forwarded-host") ?? hdr.get("host");
+  const proto = hdr.get("x-forwarded-proto") ?? "https";
+  const origin = `${proto}://${host}`;
+
   if (isNaN(baseIdNum) || isNaN(tableIdNum)) {
     console.error("Invalid baseId or tableId parameters");
-    redirect("/");
+    redirect(`${origin}/`);
   }
 
-  const appUrl = process.env.VERCEL_URL ? "" : "http://localhost:3000";
-
-  const views = await fetcher<SavedFilter[]>(`${appUrl}/api/${baseIdNum}/${tableIdNum}/views`);
+  const views = await fetcher<SavedFilter[]>(`${origin}/api/${baseIdNum}/${tableIdNum}/views`);
   const firstView = views[0];
   if (!firstView) {
     const { filterId } = await fetcher<{
       tableId: number;
       filterId: string;
-    }>(`${appUrl}/api/${baseIdNum}/${tableIdNum}/views`, {
+    }>(`${origin}/api/${baseIdNum}/${tableIdNum}/views`, {
       method: "POST",
       body: JSON.stringify({
         name: "Default View",
@@ -43,6 +47,6 @@ export default async function Page({ params }: TablePageUrlProps) {
     redirect(`/${baseIdNum}/${tableIdNum}/${filterId}`);
   }
 
-  console.log("Redirecting to view:", `${appUrl}/${baseIdNum}/${tableIdNum}/${firstView.filterId}`);
-  redirect(`${appUrl}/${baseIdNum}/${tableIdNum}/${firstView.filterId}`);
+  console.log("Redirecting to view:", `${origin}/${baseIdNum}/${tableIdNum}/${firstView.filterId}`);
+  redirect(`${origin}/${baseIdNum}/${tableIdNum}/${firstView.filterId}`);
 }

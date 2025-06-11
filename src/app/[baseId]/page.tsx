@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { fetcher } from "~/lib/fetcher";
 import type { SavedFilter, Table } from "~/lib/schemas";
@@ -15,22 +16,26 @@ export default async function BasePage({ params }: TablePageUrlProps) {
   if (baseIdStr === "styles.css") {
     return;
   }
-  const appUrl = process.env.VERCEL_URL ? "" : "http://localhost:3000";
+
+  const hdr = await headers();
+  const host = hdr.get("x-forwarded-host") ?? hdr.get("host");
+  const proto = hdr.get("x-forwarded-proto") ?? "https";
+  const origin = `${proto}://${host}`;
 
   const baseIdNum = parseInt(baseIdStr, 10);
   if (isNaN(baseIdNum)) {
     console.error(`Invalid baseId parameters provided: ${baseIdStr}`);
-    redirect(`${appUrl}/`);
+    redirect(`${origin}/`);
   }
 
-  const tables = await fetcher<Table[]>(`${appUrl}/api/${baseIdNum}/tables`);
+  const tables = await fetcher<Table[]>(`${origin}/api/${baseIdNum}/tables`);
   console.log("Tables fetched:", tables);
   const firstTable = tables[0];
   if (!firstTable) {
     const { tableId, filterId } = await fetcher<{
       tableId: number;
       filterId: string;
-    }>(`${appUrl}/api/${baseIdNum}/tables`, {
+    }>(`${origin}/api/${baseIdNum}/tables`, {
       method: "POST",
       body: JSON.stringify({
         name: "Table 1",
@@ -39,17 +44,17 @@ export default async function BasePage({ params }: TablePageUrlProps) {
       }),
     });
 
-    console.log("Redirecting to view:", `${appUrl}/${baseIdNum}/${tableId}/${filterId}`);
-    redirect(`${appUrl}/${baseIdNum}/${tableId}/${filterId}`);
+    console.log("Redirecting to view:", `${origin}/${baseIdNum}/${tableId}/${filterId}`);
+    redirect(`${origin}/${baseIdNum}/${tableId}/${filterId}`);
   }
 
-  const views = await fetcher<SavedFilter[]>(`${appUrl}/api/${baseIdNum}/${firstTable.id}/views`);
+  const views = await fetcher<SavedFilter[]>(`${origin}/api/${baseIdNum}/${firstTable.id}/views`);
   const firstView = views[0];
   if (!firstView) {
     const { filterId } = await fetcher<{
       tableId: number;
       filterId: string;
-    }>(`${appUrl}/api/${baseIdNum}/${firstTable.id}/views`, {
+    }>(`${origin}/api/${baseIdNum}/${firstTable.id}/views`, {
       method: "POST",
       body: JSON.stringify({
         name: "Default View",
@@ -59,9 +64,9 @@ export default async function BasePage({ params }: TablePageUrlProps) {
       }),
     });
 
-    redirect(`${appUrl}/${baseIdNum}/${firstTable.id}/${filterId}`);
+    redirect(`${origin}/${baseIdNum}/${firstTable.id}/${filterId}`);
   }
 
-  console.log("Redirecting to view:", `${appUrl}/${baseIdNum}/${firstTable.id}/${firstView.filterId}`);
-  redirect(`${appUrl}/${baseIdNum}/${firstTable.id}/${firstView.filterId}`);
+  console.log("Redirecting to view:", `${origin}/${baseIdNum}/${firstTable.id}/${firstView.filterId}`);
+  redirect(`${origin}/${baseIdNum}/${firstTable.id}/${firstView.filterId}`);
 }
