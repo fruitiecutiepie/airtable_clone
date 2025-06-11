@@ -1,4 +1,3 @@
-'use client';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -8,7 +7,7 @@ import { BellIcon, PaintBrushIcon, TrashIcon, UserGroupIcon, UsersIcon } from "@
 import { PopoverSection, type PopoverSectionProps } from '../../components/ui/PopoverSection';
 import React, { useMemo } from 'react'
 import { ButtonWithTooltip } from '../../components/ui/ButtonWithTooltip';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { api } from '~/trpc/react';
 
 export default function TablePageHeader({
@@ -16,6 +15,7 @@ export default function TablePageHeader({
 }: {
   baseId: number;
 }) {
+  const router = useRouter();
   const accountSections: PopoverSectionProps[] = useMemo(() => [
     {
       search: false,
@@ -63,7 +63,7 @@ export default function TablePageHeader({
   });
   const delBase = api.base.delBase.useMutation({
     onSuccess: async () => {
-      redirect('/');
+      router.push('/');
     },
     onError: (error, variables, context) => {
       console.error(`Error deleting base: ${error.message}`, variables, context);
@@ -390,7 +390,7 @@ export default function TablePageHeader({
                     icon: ExitIcon,
                     onClick: async () => {
                       await signOut();
-                      redirect('/');
+                      router.push('/');
                     },
                     text: "Sign out"
                   }
