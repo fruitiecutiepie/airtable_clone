@@ -45,7 +45,11 @@ export function useRowsStream(
     const newRows = chunkRef.current;
     chunkRef.current = [];
     startTransition(() => {
-      setRows((prev) => prev.concat(newRows));
+      setRows(prev => {
+        const seen = new Set(prev.map(r => r.rowId));
+        const unique = newRows.filter(r => !seen.has(r.rowId));
+        return prev.concat(unique);
+      });
     });
   }, []);
 
@@ -53,7 +57,20 @@ export function useRowsStream(
     if (loading || cancelledRef.current) return;
     setLoading(true);
     setError(undefined);
-    console.log("▶️ fetchNextPage with filters:", pageParams.filters);
+    if (rows.length > 0) {
+      // If we already have rows, reset the cursor to the last row
+      // This allows us to continue streaming from where we left off
+      cursorRef.current = {
+        lastId: rows[rows.length - 1]?.rowId,
+        lastValue: (pageParams.sortCol && pageParams.sortCol !== "row_id")
+          ? (rows[rows.length - 1]?.data)?.[pageParams.sortCol]
+          : undefined,
+      };
+      // cursorRef.current = rows[rows.length - 1].rowId; // advance cursor to last rowId
+    } else {
+      // If no rows yet, start from the initial cursor
+      cursorRef.current = pageParams.cursor;
+    }
 
     try {
       // 1) Use cursorRef.current instead of pageParams.cursor, so we advance pagination as we stream
@@ -79,10 +96,10 @@ export function useRowsStream(
       // 2) Read until done or cancellation
       while (true) {
         // If someone signaled cancellation, abort the reader and exit
-        if (cancelledRef.current) {
-          await reader.cancel();
-          break;
-        }
+        // if (cancelledRef.current) {
+        //   await reader.cancel();
+        //   break;
+        // }
 
         const { value, done } = await reader.read();
         if (done) {
@@ -120,18 +137,18 @@ export function useRowsStream(
       }
 
       // 5) One final flush if not cancelled
-      if (!cancelledRef.current) {
-        flush();
-      }
+      // if (!cancelledRef.current) {
+      flush();
+      // }
     } catch (err) {
-      if (!cancelledRef.current) {
-        setError((err as Error).message);
-      }
+      // if (!cancelledRef.current) {
+      setError((err as Error).message);
+      // }
     } finally {
       // 6) Only clear loading if not cancelled
-      if (!cancelledRef.current) {
-        setLoading(false);
-      }
+      // if (!cancelledRef.current) {
+      setLoading(false);
+      // }
     }
   }, [
     baseId,
@@ -142,6 +159,7 @@ export function useRowsStream(
     pageParams.pageSize,
     pageParams.sortCol,
     pageParams.sortDir,
+    rows,
     search,
     tableId,
   ]);
@@ -154,16 +172,13 @@ export function useRowsStream(
     setTotalRows(0);
     setLoading(false);
     setError(undefined);
-    void fetchNextPage();
-  }, [fetchNextPage]);
+  }, []);
 
   const addRows = api.table.addRows.useMutation({
     onSuccess: async (addedRowsData: TableRow[], variables, context) => {
-      // Assuming 'addedRowsData' is the array of newly created TableRow objects returned by the mutation.
-      // This typically includes the server-generated rowId and other default values.
       if (addedRowsData && addedRowsData.length > 0) {
         startTransition(() => {
-          setRows((prevRows) => [...prevRows, ...addedRowsData]); // Append new row(s) to the end
+          setRows((prevRows) => [...prevRows, ...addedRowsData]);
           setTotalRows((prevTotal) => prevTotal + addedRowsData.length);
         });
       }
@@ -177,13 +192,11 @@ export function useRowsStream(
 
   const updRow = api.table.updRow.useMutation({
     onSuccess: async (updatedRowData: TableRow, variables, context) => {
-      // Assuming 'updatedRowData' is the complete updated TableRow object returned by the mutation.
       if (updatedRowData) {
         startTransition(() => {
           setRows((prevRows) =>
             prevRows.map((r) => (r.rowId === updatedRowData.rowId ? updatedRowData : r))
           );
-          // totalRows does not change on update
         });
       }
     },
@@ -249,7 +262,6 @@ export function useRowsStream(
       rafId = undefined;
     };
 
-    console.log(`Starting EventSource for jobId: ${jobId}`);
     const es = new EventSource(`/api/events/${jobId}`);
     es.onmessage = (e) => {
       const msg = JSON.parse(e.data as string) as EventSourceMessage;
@@ -264,6 +276,7 @@ export function useRowsStream(
         es.close();
         setIs100kRowsLoading(false);
         reset();
+        void fetchNextPage();
         latestCountProgressRef.current = 0;
       }
       if (msg.type === "error") {
@@ -292,13 +305,16 @@ export function useRowsStream(
 
   useEffect(() => {
     if (!ready) return;
-    cancelledRef.current = false;
-    reset();   // ← clear buffer, rows, cursor, totalRows, then fetch
-    return () => {
-      cancelledRef.current = true;
-    };
+    // cancelledRef.current = false;
+    reset();   // ← clear buffer, rows, cursor, totalRows
+    void fetchNextPage();
+    // return () => {
+    //   cancelledRef.current = true;
+    // };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [depsKey, ready, reset]);
 
+  console.log("useRowsStream: rows=", rows.length, "totalRows=", totalRows, "loading=", loading, "error=", error);
   return {
     rows,
     totalRows,

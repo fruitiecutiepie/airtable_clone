@@ -49,6 +49,13 @@ export async function POST(
 
   const stream = new ReadableStream({
     async start(controller) {
+      const onAbort = () => {
+        console.warn("rows/stream aborted by client");
+        // make sure we don’t enqueue any more
+        try { controller.close() } catch { }
+        client.release();
+      };
+      req.signal.addEventListener("abort", onAbort);
       try {
         // Build the WHERE clause
         // - Always filter by table_id = $1
@@ -192,8 +199,6 @@ export async function POST(
         `;
         params.push(limit);
 
-        console.log("🔍 SQL WHERE:", where.join(" AND "), "params=", params);
-
         await client.query("BEGIN");
         const { rows: countRows } = await client.query<{
           count: string
@@ -201,7 +206,7 @@ export async function POST(
           countSql,
           paramsWithoutCursor
         );
-        const totalRows = Number(countRows[0]?.count)
+        const totalRows = Number(countRows[0]?.count);
         controller.enqueue(
           encoder.encode(JSON.stringify({ totalRows }) + "\n")
         );
@@ -236,7 +241,13 @@ export async function POST(
 
         do {
           batch = await cursorQuery.read(100);
+          if (req.signal.aborted) {
+            break;
+          }
           for (const row of batch) {
+            if (req.signal.aborted) {
+              break;
+            }
             const out: TableRow = {
               rowId: row.row_id.toString(),
               tableId: Number(tableId),
@@ -248,12 +259,16 @@ export async function POST(
           }
         } while (batch.length > 0);
 
-        await client.query("COMMIT");
+        if (!req.signal.aborted) {
+          await client.query("COMMIT");
+          controller.close();
+        }
       } catch (err) {
         console.error("Error in rows stream:", err);
         await client.query("ROLLBACK");
         controller.error(err instanceof Error ? err : new Error(String(err)));
       } finally {
+        req.signal.removeEventListener("abort", onAbort);
         client.release();
       }
     },

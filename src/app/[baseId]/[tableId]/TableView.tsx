@@ -135,19 +135,34 @@ export default function TableView({
   //   };
   //   return () => es.close();
   // }, [jobId, setTotalRows, setStreamLoading]);
+  const streamLoadingRef = useRef(streamLoading);
+  const loadedRowsRef = useRef(loadedRows);
+  const totalRowsRef = useRef(totalRows);
+
+  useEffect(() => {
+    streamLoadingRef.current = streamLoading;
+  }, [streamLoading]);
+
+  useEffect(() => {
+    loadedRowsRef.current = loadedRows;
+  }, [loadedRows]);
+
+  useEffect(() => {
+    totalRowsRef.current = totalRows;
+  }, [totalRows]);
 
   useEffect(() => {
     if (!loader.current) return;
     const obs = new IntersectionObserver(
       ([entry]) => {
-        if (!entry?.isIntersecting) return;
-        // guard with your loading+rows checks
-        if (streamLoading || loadedRows >= totalRows) return;
+        if (
+          !entry?.isIntersecting
+          || streamLoadingRef.current
+          || loadedRowsRef.current >= totalRowsRef.current
+        ) return;
 
-        // prevent any further callbacks until this batch is done
         obs.unobserve(entry.target);
         void fetchNextPage();
-        // resume observing for the *next* batch
         obs.observe(entry.target);
       },
       { root: tableContainerRef.current }
@@ -155,7 +170,7 @@ export default function TableView({
 
     obs.observe(loader.current);
     return () => obs.disconnect();
-  }, [fetchNextPage, streamLoading, loadedRows, totalRows, tableContainerRef]);
+  }, [fetchNextPage, tableContainerRef]);
 
   useEffect(() => {
     const el = tableContainerRef.current;
@@ -176,7 +191,8 @@ export default function TableView({
     // run once in case content is short
     onScroll();
     return () => void el.removeEventListener("scroll", onScroll);
-  }, [fetchNextPage, loadedRows, streamLoading, tableContainerRef, totalRows]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchNextPage, tableContainerRef]);
 
   const onAddRowClick = useCallback(async () => {
     try {
