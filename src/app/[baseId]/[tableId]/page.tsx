@@ -22,7 +22,7 @@ export default async function Page({ params }: TablePageUrlProps) {
     redirect("/");
   }
 
-  const appUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
+  const appUrl = process.env.VERCEL_URL ? "" : "http://localhost:3000";
 
   const views = await fetcher<SavedFilter[]>(`${appUrl}/api/${baseIdNum}/${tableIdNum}/views`);
   const firstView = views[0];

@@ -15,7 +15,7 @@ export default async function BasePage({ params }: TablePageUrlProps) {
   if (baseIdStr === "styles.css") {
     return;
   }
-  const appUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
+  const appUrl = process.env.VERCEL_URL ? "" : "http://localhost:3000";
 
   const baseIdNum = parseInt(baseIdStr, 10);
   if (isNaN(baseIdNum)) {
