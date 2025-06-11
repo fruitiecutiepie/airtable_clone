@@ -35,12 +35,12 @@ function startBulkLoad(
         const batchEnd = Math.min(totalInserted + BATCH_SIZE, TARGET);
         for (let i = totalInserted; i < batchEnd; i++) {
           const fakeObj = {
-            first_name: faker.person.firstName(),
-            last_name: faker.person.lastName(),
+            firstName: faker.person.firstName(),
+            lastName: faker.person.lastName(),
             age: faker.number.int({ min: 18, max: 80 }),
             email: faker.internet.email(),
             active: faker.datatype.boolean(),
-            joined_at: faker.date.past().toISOString(),
+            joinedAt: faker.date.past().toISOString(),
           };
           lines.push(
             `${tableId}\t${JSON.stringify(fakeObj).replace(/"/g, '"')}\n`
